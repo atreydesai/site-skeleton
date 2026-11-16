@@ -1,0 +1,145 @@
+<script lang="ts">
+  import {
+    absoluteSiteUrl,
+    canonicalUrl as toCanonicalUrl,
+    SITE_URL,
+  } from "$lib/seo";
+  import {
+    graph,
+    pageStructuredData,
+    personStructuredData,
+    websiteStructuredData,
+    withoutContext,
+  } from "$lib/structured-data";
+  import { SITE } from "$lib/site";
+
+  export let title = SITE.name;
+  export let description = SITE.description;
+  // Social cards use a 1.91:1 crop of the portrait; the square original is the
+  // Person's own image in structured data.
+  export let image: string | undefined = undefined;
+  export let imageAlt: string | undefined = undefined;
+  export let url = SITE_URL;
+  export let type = "website";
+  export let noindex = false;
+
+  // Structured data. `pageType` is a schema.org WebPage subtype; `breadcrumbs`
+  // defaults to Home > this page; `jsonLd` carries page-specific nodes
+  // (an article, a paper list) that join the shared @graph.
+  export let pageType = "WebPage";
+  export let breadcrumbs: Array<{ name: string; url: string }> | undefined =
+    undefined;
+  export let jsonLd: object[] = [];
+  export let about = false;
+
+  // Article metadata (only emitted when type="article").
+  export let published: string | undefined = undefined;
+  export let modified: string | undefined = undefined;
+  export let tags: string[] = [];
+
+  $: canonicalUrl = toCanonicalUrl(url);
+  // `undefined` (an optional post field passed straight through) falls back
+  // to the portrait card, alt text included.
+  $: cardImage = image ?? "/og-image-wide.jpg";
+  $: cardAlt =
+    (image && imageAlt) || SITE.portraitAlt;
+  $: imageUrl = absoluteSiteUrl(cardImage);
+  // The portrait card is 1200×630.
+  $: cardType = cardImage.endsWith(".png") ? "image/png" : "image/jpeg";
+  $: cardSized = cardImage === "/og-image-wide.jpg";
+  $: pageName = title.endsWith(` | ${SITE.name}`) ? title.slice(0, -` | ${SITE.name}`.length) : title;
+  $: isHome = canonicalUrl === `${SITE_URL}/`;
+  $: crumbs =
+    breadcrumbs ??
+    (isHome
+      ? []
+      : [
+          { name: "Home", url: `${SITE_URL}/` },
+          { name: pageName, url: canonicalUrl },
+        ]);
+  $: structuredDataJson = JSON.stringify(
+    graph([
+      withoutContext(
+        personStructuredData({ imageUrl: absoluteSiteUrl("/og-image.jpg") }),
+      ),
+      websiteStructuredData(),
+      // Pages kept out of the index (404, unlisted posts) describe nothing
+      // worth citing, so they carry only the shared site identity.
+      ...(noindex
+        ? []
+        : [
+            ...pageStructuredData({
+              url: canonicalUrl,
+              name: pageName,
+              description,
+              imageUrl,
+              pageType,
+              breadcrumbs: crumbs,
+              about,
+            }),
+            ...jsonLd,
+          ]),
+    ]),
+  ).replace(/</g, "\\u003c");
+</script>
+
+<svelte:head>
+  <title>{title}</title>
+  <meta name="description" content={description} />
+
+  <!-- Robots -->
+  {#if noindex}
+    <meta name="robots" content="noindex, nofollow" />
+  {:else}
+    <meta
+      name="robots"
+      content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1"
+    />
+  {/if}
+
+  <!-- Open Graph / Facebook -->
+  <meta property="og:type" content={type} />
+  <meta property="og:url" content={canonicalUrl} />
+  <meta property="og:title" content={title} />
+  <meta property="og:description" content={description} />
+  <meta property="og:image" content={imageUrl} />
+  <meta property="og:image:alt" content={cardAlt} />
+  {#if cardSized}
+    <meta property="og:image:type" content={cardType} />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+  {/if}
+  <meta property="og:site_name" content={SITE.name} />
+  <meta property="og:locale" content="en_US" />
+  {#if type === "article"}
+    {#if published}
+      <meta property="article:published_time" content={published} />
+    {/if}
+    <meta property="article:modified_time" content={modified ?? published} />
+    <meta property="article:author" content={`${SITE_URL}/about/`} />
+    {#each tags as tag}
+      <meta property="article:tag" content={tag} />
+    {/each}
+  {/if}
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:url" content={canonicalUrl} />
+  <meta name="twitter:title" content={title} />
+  <meta name="twitter:description" content={description} />
+  <meta name="twitter:image" content={imageUrl} />
+  <meta name="twitter:image:alt" content={cardAlt} />
+  {#if SITE.twitter}
+    <meta name="twitter:site" content={SITE.twitter} />
+    <meta name="twitter:creator" content={SITE.twitter} />
+  {/if}
+
+  <!-- Additional SEO -->
+  <meta name="author" content={SITE.name} />
+  <link rel="canonical" href={canonicalUrl} />
+  <link rel="alternate" type="text/markdown" href={canonicalUrl} />
+  <link rel="describedby" type="text/plain" href="/llms.txt" />
+
+  <!-- Machine-readable identity shared by every page. -->
+  {@html `<script type="application/ld+json">${structuredDataJson}</script>`}
+</svelte:head>

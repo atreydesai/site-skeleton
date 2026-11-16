@@ -1,0 +1,17 @@
+# Talks and posters for the research page. `type` groups them ("poster" is
+# listed separately). slides and video are optional links.
+- id: talk-example-workshop
+  title: "An Example Talk Title"
+  venue: "Example Workshop"
+  date: "2026-02-01"
+  type: research talk
+  slides: null
+  video: null
+
+- id: poster-example
+  title: "An Example Poster Title"
+  venue: "Your University"
+  date: "2025-04-01"
+  type: poster
+  slides: null
+  video: null

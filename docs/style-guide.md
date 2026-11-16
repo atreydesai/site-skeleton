@@ -1,0 +1,1476 @@
+# Website style guide
+
+> **Note for this skeleton.** This guide was written for the full site this
+> one was cut from. Where it mentions the bookshelf, blog, photography, the
+> boba arcade, the custom cursor, the falling leaves, the music player or the
+> pixelated portrait, it describes features that are not included here; skip
+> those passages. Everything else (tokens, type, colour, spacing, layout,
+> motion, components, accessibility) applies as written.
+
+This guide defines the website’s visual language and the rules for applying it:
+the available tokens and their roles, component states, and the few places
+where expressive exceptions are allowed. Everything here is implemented except
+two accessibility items deferred by direction, which are marked where they
+appear: light-theme contrast and pointer target size.
+
+## Design character
+
+The site should feel like a well-used research notebook: warm, precise,
+editorial, personal, and lightly playful. It should not feel like a corporate
+dashboard or a generic portfolio template.
+
+### Principles
+
+1. **Reading comes first.** Body copy, research descriptions, and notes should
+   be comfortable before they are decorative.
+2. **Structure through rhythm.** Repeated spacing, type, rules, and alignment
+   should provide hierarchy without adding containers around everything.
+3. **Warm paper, dark ink, one primary accent.** Cream and ink carry the
+   interface. Orange marks interaction and emphasis. Support hues convey
+   category or data meaning, not decoration.
+4. **Quiet interface, expressive moments.** Navigation and controls should stay
+   restrained. The riso banner, research media, photography, and boba arcade may
+   be more characterful.
+5. **Density follows the task.** Long-form reading is relaxed; the bookshelf is
+   compact; primary actions remain comfortably sized.
+6. **Every exception is named.** Optical adjustments are allowed when they are
+   component-scoped, documented, and tested.
+7. **Accessibility is a design constraint.** Contrast, focus, text
+   customization, keyboard operation, target size, and reduced motion are part
+   of the visual system.
+
+## System architecture
+
+The system has three layers:
+
+1. **Primitive tokens** are raw values: palette steps, spacing values, font
+   families, breakpoints, and motion durations.
+2. **Semantic roles** name a purpose: `text-primary`, `surface-page`,
+   `link-default`, `space-section`, or `motion-fast`. Global inherited roles
+   may be CSS variables; component roles use the documented primitive mapping
+   directly to avoid a duplicate value source.
+3. **Component recipes** combine semantic tokens into a complete style:
+   `type-page-title`, `control-compact`, `surface-ledger-row`, or
+   `page-header-with-meta`.
+
+Rules:
+
+- Routes should use documented semantic mappings and component recipes, not
+  raw hex values.
+- A typography recipe owns family, size, weight, leading, tracking, and wrap.
+  Do not add a `text-*`, `leading-*`, or `tracking-*` utility to it.
+- Component variants should be explicit props or named classes. Do not pass
+  arbitrary margin classes through a public component API.
+- Primitive values may appear directly only in illustrations, canvas code,
+  media-derived colors, or a documented optical exception.
+
+## Typography
+
+### Font families
+
+Three typefaces, three roles, and no monospace. The rule, borrowed from
+anthropic.com: **serif for what you read, sans for what you scan or click.**
+Optima carries the reading text (a humanist face with serif-like stroke
+contrast, it plays the serif part); Neue Haas Grotesk carries everything that
+is scanned or clicked, at two optical sizes.
+
+| Role      | Token                                | Stack                                                                                | Use                                                                                                          |
+| --------- | ------------------------------------ | ------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------ |
+| Display   | `--font-display` / `font-display`    | `"neue-haas-grotesk-display"`, metric-matched Helvetica Neue fallback, sans-serif    | Page, article, and hero titles; long-form `h2`                                                               |
+| Interface | `--font-ui` / `font-ui`              | `"neue-haas-grotesk-text"`, metric-matched Helvetica Neue fallback, sans-serif       | Item headings and titles, long-form `h3`, navigation, buttons, controls, labels, metadata, dates, captions, tooltips, data |
+| Prose     | `--font-prose` / `font-serif`        | `Optima`, `Candara`, `"URW Classico"`, sans-serif                                    | Body and long-form text, decks, blurbs and summaries, footnotes, quotes, the italic `section-heading`       |
+
+The CSS variables in `app.css` (`:root`) are the single source; the Tailwind
+`fontFamily` keys point at them.
+
+Choosing a role:
+
+- **Read it as sentences → Prose.** Paragraphs, decks, card blurbs, book notes,
+  footnotes, quotes, explainer captions, empty-state sentences.
+- **Scan it or click it → Interface.** Titles of items in a list, navigation,
+  buttons and text controls, filters, pills, table headers and cells, dates,
+  counts, labels, captions, tooltips, footer metadata.
+- **Headings split the same way.** Big titles are Display. Titles of items and
+  long-form subsections are Interface (or Display at `24px` for a long-form
+  `h2`). The one serif heading is `section-heading`: an italic Optima accent
+  for editorial section labels.
+- **Figures woven into a sentence** (a live stat, a diff count) are Interface
+  spans inside the prose, with lining tabular figures.
+- **There is no monospace face**, for code, data, or labels. Do not add a
+  `font-mono` class or a mono stack; interface text that used to be mono is
+  NHG Text.
+
+Weights are a hard constraint:
+
+- Typekit kit `nsg3mxc` serves NHG Display at 500, 500 italic, 600, and 700,
+  and NHG Text at 400, 400 italic, 500, and 700. NHG Text has no 600: a `600`
+  request renders Bold.
+- macOS Optima has only Regular (400), Bold (700), and ExtraBlack: `500`
+  renders as Regular and `600` as Bold. Never ask Optima for a middle weight.
+- **The site is unbolded.** Only display titles carry weight: `600` for page,
+  article, and long-form `h2` titles, `700` only for `type-hero-title`.
+  Everything in the Interface face is `400`: item headings, long-form `h3`,
+  navigation, buttons, labels, tooltips, captions, and the CV. Hierarchy comes
+  from family, size, and colour (`ink-900`/`cream-100` against the secondary
+  tones), never from a heavier weight. Your own name in author lists is marked
+  by colour alone. Bold is for emphasis inside prose (`<strong>`) only.
+  The one exception is the drawn wordmark (NHG Text `500` outlines), which is
+  a logo, not text.
+
+Neue Haas Grotesk Display is drawn for digital type above `20px`, following the
+[MIT typography guidance](https://brand.mit.edu/typography); below that, use
+NHG Text. The 16px header wordmark is set in NHG Text at `500` for this reason
+and must be tested against the fallback font.
+
+Both Typekit families have a metric-matched local fallback
+(`neue-haas-grotesk-fallback`, `neue-haas-grotesk-text-fallback`: Helvetica
+Neue, Helvetica, or Arial with `size-adjust` and ascent/descent overrides) so
+text does not shift when the kit loads. The NHG Text values were measured
+in-browser against Helvetica Neue.
+
+The wordmark is live text, not a drawing: `SITE.wordmark` from
+`src/lib/site.js`, set in NHG Text `500` at `-0.01em`, the one place the
+interface face carries weight. It stays put on every page; the header around
+it is sticky from `md` up.
+
+Optima is a system font rather than a served web font. Cross-platform visual QA
+is required because the fallback changes metrics and character across Apple,
+Windows, Linux, and Android.
+
+### Type roles
+
+All sizes assume the browser’s default `16px` root. Every size in this table,
+and the `body` size that unclassed text inherits, is expressed in `rem`, so text
+scales with the reader’s browser font-size preference. Never set a text size in
+`px`: it silently opts that text out of the reader’s setting.
+
+| Token                  | Family       |                                       Size | Line height | Weight |    Tracking | Use                                                    |
+| ---------------------- | ------------ | -----------------------------------------: | ----------: | -----: | ----------: | ------------------------------------------------------ |
+| `type-hero-title`      | Display      |      `clamp(3.75rem, 2.25rem + 6vw, 6rem)` |       `0.9` |    700 |  `-0.025em` | Rare landing or error display                          |
+| `type-page-title`      | Display      |                          `1.875rem` / 30px |      `1.05` |    600 |  `-0.015em` | Ordinary page titles                                   |
+| `type-article-title`   | Display      | `clamp(1.875rem, 1.6rem + 1.1vw, 2.25rem)` |       `1.1` |    600 |  `-0.015em` | Titles likely to wrap                                  |
+| Long-form `h2`         | Display      |                            `1.5rem` / 24px |       `1.2` |    600 |   `-0.01em` | Blog sections; `48px` above, `16px` below              |
+| `section-heading`      | Prose italic |                          `1.2rem` / 19.2px |       `1.4` |    400 |         `0` | Editorial section labels; the one serif heading        |
+| `type-item-heading`    | Interface    |                          `1.125rem` / 18px |       `1.3` |    400 |  `-0.005em` | Research, talk, post, and list titles                  |
+| Long-form `h3`         | Interface    |                         `1.1875rem` / 19px |       `1.3` |    400 |         `0` | Blog subsections; `32px` above, `8px` below            |
+| `type-deck`            | Prose        |                          `1.125rem` / 18px |       `1.5` |    400 |         `0` | Introductory copy up to two paragraphs                 |
+| `type-body`            | Prose        |                         `1.0625rem` / 17px |      `1.55` |    400 |         `0` | Default body copy                                      |
+| `type-longform`        | Prose        |                          `1.125rem` / 18px |      `1.65` |    400 |         `0` | Blog posts and sustained essays; paragraphs `1.1em` apart |
+| `type-body-small`      | Prose        |                         `0.95rem` / 15.2px |      `1.47` |    400 |         `0` | Secondary descriptions and compact records             |
+| `type-nav`             | Interface    |                         `0.8125rem` / 13px |       `1.4` |    400 |         `0` | Site navigation                                        |
+| Figure caption         | Interface    |                         `0.8125rem` / 13px |       `1.4` |    400 |   `0.005em` | Image and figure captions: left-aligned, max `45ch`    |
+| `type-meta`            | Interface    |                           `0.75rem` / 12px |     `1.333` |    400 |    `0.01em` | Dates, counts, table metadata, tooltips                |
+| `type-label`           | Interface    |                           `0.75rem` / 12px |      `1.25` |    400 |    `0.06em` | Short uppercase labels only                            |
+
+Interface text at `12–13px` (`type-meta`, pills, `control-text`, the page
+header aside, captions) uses lining tabular figures, so dates and counts line
+up and do not wobble as they change.
+
+### Leading rules
+
+- Large display type uses `0.9–1.1`, depending on size and expected wrapping.
+- Short headings use `1.3–1.4`.
+- Body copy uses `1.5–1.6`.
+- Sustained long-form copy uses `1.65`.
+- Metadata uses `1.25–1.35`.
+- Single-line controls may use `1`, but target height comes from padding or
+  `min-height`, not exaggerated line-height.
+- Use unitless line-height except where a component must align to a fixed
+  baseline grid.
+
+The body and long-form values intentionally exceed MIT’s NHG body guidance
+because the site uses Optima, not NHG, for prose and follows the longer-text
+guidance in [USWDS Typography](https://designsystem.digital.gov/components/typography/).
+
+### Measure
+
+| Role                            | Maximum | Use                                         |
+| ------------------------------- | ------: | ------------------------------------------- |
+| Reading (`measure-reading`)     |  `68ch` | Blog posts, About prose, and long notes      |
+| Standard measure guideline      |  `75ch` | Shorter page copy and research descriptions |
+| Compact measure guideline       |  `58ch` | Decks, alerts, empty states                  |
+| Caption measure guideline       |  `45ch` | Captions, helper text, tooltips              |
+
+The structural container may be wider than the reading measure. Apply measure
+to the text block, not indiscriminately to its media, table, or layout parent.
+Only the repeatedly consumed reading measure has a shared utility; contextual
+limits should stay local until they have more than one consumer.
+
+### Hierarchy and flow
+
+- A page has one `h1`.
+- Do not skip heading levels for visual styling.
+- Page titles and short headings use `text-wrap: balance`.
+- Body paragraphs use `text-wrap: pretty` where supported.
+- Space above an in-flow heading should be at least 1.5 times the space below
+  it.
+- Long-form paragraphs use `1–1.25em` space after the paragraph.
+- Lists use at least `0.5em` between multi-line items.
+- Use old-style figures in running prose.
+- Use lining, tabular figures for dates, times, tables, scores, and changing
+  counters.
+
+### Casing and emphasis
+
+- Page titles, navigation labels, footer labels, and editorial section headings
+  use lowercase as part of the site voice.
+- Task actions use sentence case: “Download PDF,” “Clear filters,” “View
+  source.”
+- Acronyms retain conventional capitalization: “PDF,” “CV,” “TLDR,” “AI.”
+- Uppercase is limited to short metadata labels and always uses positive
+  tracking.
+
+### Tracking and kerning
+
+Pair kerning is always on (`font-kerning: normal` on `body`); the browser's
+`auto` can drop it at small sizes, which is where the interface face lives.
+Tracking follows size and case, never decoration:
+
+- Display titles tighten as they grow: `-0.015em` at `600` for page and
+  article titles, `-0.025em` for the hero, `-0.01em` for long-form `h2`.
+- NHG Text at reading-to-title sizes is close to neutral: `-0.005em` for item
+  headings (`18px`), `-0.01em` for the drawn wordmark.
+- Small interface text is never tightened: `0` for navigation (`13px`),
+  `+0.005em` for captions, `+0.01em` for `12px` meta, pills, and controls.
+- Uppercase labels open up to `+0.06em`.
+- Optima is set at its default spacing everywhere (`0`), italic included.
+- Create hierarchy with family, size, and colour before weight. Weight is
+  reserved for display titles (`600`, hero `700`); see the weight rule under
+  Font families.
+- Do not use long passages of bold, italic, uppercase, or centered text.
+- Avoid title case for every heading.
+
+## Color
+
+### Core primitive palette
+
+#### Cream
+
+| Token       | Value     |
+| ----------- | --------- |
+| `cream-50`  | `#FFFDFB` |
+| `cream-100` | `#FDF8F3` |
+| `cream-200` | `#FAF0E6` |
+| `cream-300` | `#F5E6D3` |
+| `cream-400` | `#E8D5C4` |
+| `cream-500` | `#D4C4B0` |
+
+#### Ink
+
+| Token     | Value     |
+| --------- | --------- |
+| `ink-50`  | `#F7F7F7` |
+| `ink-100` | `#E3E3E3` |
+| `ink-200` | `#C8C8C8` |
+| `ink-300` | `#A4A4A4` |
+| `ink-400` | `#818181` |
+| `ink-500` | `#666666` |
+| `ink-600` | `#515151` |
+| `ink-700` | `#434343` |
+| `ink-800` | `#383838` |
+| `ink-900` | `#1A1A1A` |
+
+#### Accent and highlight
+
+| Token          | Value     | Use                                                 |
+| -------------- | --------- | --------------------------------------------------- |
+| `accent`       | `#E85D4C` | Graphical accent, hover wash, large dark-theme text |
+| `accent-light` | `#F18272` | Dark-theme links, focus, and interactive text       |
+| `accent-dark`  | `#C9462F` | Light-theme links, focus, and interactive text      |
+| `accent-muted` | `#D4847A` | Decorative or data use, not ordinary text           |
+| `blush-50`     | `#FFF9F7` | Very subtle warm layer                              |
+| `blush-100`    | `#FFF0EB` | Hover or selection layer                            |
+| `blush-200`    | `#FFE4DB` | Text selection                                      |
+| `blush-300`    | `#FFD4C7` | Emphasis layer                                      |
+| `blush-400`    | `#E8B8A8` | Strong highlight                                    |
+
+Do not place small cream text on `accent`: the current contrast is only
+`3.26:1`. Primary filled buttons use ink and cream instead.
+
+### Support palette
+
+Support hues carry category or data meaning. They are not additional brand
+accents.
+
+| Family | Default   | Light     | Dark      | Approved meaning                 |
+| ------ | --------- | --------- | --------- | -------------------------------- |
+| Sage   | `#3D7A55` | `#7BAE8C` | `#1F5234` | Positive, complete, success      |
+| Ochre  | `#946410` | `#DBA84D` | `#704A05` | Caution, in progress, importance |
+| Wine   | `#8A3251` | `#C68098` | `#5E1F37` | Personal, favorite, affective    |
+| Steel  | `#3A6A91` | `#779BBE` | `#1F4567` | Informational, analytical        |
+| Plum   | `#6F4476` | `#AA89B1` | `#4A2A50` | Special or cross-category        |
+
+Use the dark shade for ordinary text on light surfaces and the light shade for
+ordinary text on dark surfaces.
+
+The `-light` shades exist only for dark surfaces; no light-theme component uses
+them. Each was chosen to clear `4.5:1` on **both** the page (`ink-900`) and the
+raised dark surfaces where these colors actually appear — the sheet, the note
+sidebar, the select dropdown, a selected row — and to clear it again once the
+family’s own `-dark` tint is composited underneath as a pill fill. A value
+that passes on `ink-900` alone is not sufficient.
+
+### Semantic color tokens
+
+| Role             | Light theme                   | Dark theme        |
+| ---------------- | ----------------------------- | ----------------- |
+| `surface-page`   | `cream-100`                   | `ink-900`         |
+| `surface-raised` | `cream-50`                    | `ink-800`         |
+| `surface-subtle` | `cream-200`                   | `ink-800`         |
+| `surface-hover`  | `blush-100` or `accent` at 6% | `cream-100` at 5% |
+| `text-strong`    | `ink-900`                     | `cream-100`       |
+| `text-primary`   | `ink-700`                     | `cream-200`       |
+| `text-secondary` | `ink-500`                     | `cream-400`       |
+| `text-muted`     | `ink-400`                     | `cream-500`      |
+| `text-disabled`  | `ink-400`                     | `ink-300`        |
+| `link-default`   | `accent-dark`                 | `accent-light`   |
+| `link-hover`     | `ink-900`                     | `cream-100`       |
+| `border-subtle`  | `ink-200`                     | `ink-700`         |
+| `border-strong`  | `ink-500`                     | `cream-400`       |
+| `focus-ring`     | `accent-dark`                 | `accent-light`    |
+| `selection`      | `blush-200`                   | `ink-600`         |
+
+Dark-theme secondary text descends the **cream** ramp
+(`cream-100` → `cream-400` → `cream-500`); it never uses the ink ramp, whose
+values are all near-black and therefore near-invisible on `ink-900`. `ink-300`
+and `ink-400` appear in the dark theme only as decorative glyphs and
+"no value recorded" placeholders, where the `3:1` graphical threshold applies
+rather than `4.5:1`.
+
+Color roles remain the same across themes even when the primitive value
+changes. This follows the role-based token model documented by
+[IBM Carbon](https://carbondesignsystem.com/elements/color/overview/).
+
+The table records the canonical role mappings. `surface-page`, `text-primary`,
+and `focus-ring` are CSS variables because they are inherited or read by a
+single global rule; every other component-scoped role uses the matching
+Tailwind primitive so the palette remains the single source of truth.
+
+The dark theme meets `4.5:1` for ordinary text and `3:1` for large text and
+essential graphics on every route and interactive state, measured against the
+composited background. The light theme still has failing pairs, deferred by
+direction; see [Contrast](#contrast).
+
+### Color-use rules
+
+- Ordinary text must reach `4.5:1`.
+- Large text and essential graphical objects must reach `3:1`.
+- Do not round a near-pass upward.
+- Do not communicate state by hue alone; pair it with text, icon, underline,
+  fill, or shape.
+- `ink-300`, `ink-400`, and low-opacity text colors are decorative or disabled
+  unless the tested background and size qualify.
+- Accent hover states must remain readable; a hover state cannot reduce
+  contrast below the default state. This is why the dark-theme link hover is
+  `cream-100` rather than `accent`: `accent` is *less* legible on `ink-900`
+  than the `accent-light` resting state, so hovering would have dimmed it.
+- Measure contrast against the composited background, not the declared one. A
+  translucent fill (`bg-accent/[0.08]`), a translucent surface
+  (`bg-ink-900/95`), and an ancestor’s `opacity` all change what the text is
+  actually sitting on.
+- `opacity` on a text element is a contrast change. A resting state expressed
+  as an opacity must meet its threshold *at that opacity*, not at `1`.
+- Hard-coded colors belong only to the boba sprites, canvas rendering,
+  media-derived art, or the documented riso treatment.
+
+## Spacing
+
+### Primitive scale
+
+The site uses a 4px foundation with 2px intermediate precision and a limited
+set of dense values.
+
+| Token       |  Value | Typical use                          |
+| ----------- | -----: | ------------------------------------ |
+| `space-0`   |    `0` | Reset                                |
+| `space-0.5` |  `2px` | Optical inset, pill padding          |
+| `space-1`   |  `4px` | Icon/text micro-gap                  |
+| `space-1.5` |  `6px` | Dense label gap                      |
+| `space-2`   |  `8px` | Compact gap                          |
+| `space-2.5` | `10px` | Dense control padding                |
+| `space-3`   | `12px` | Related elements                     |
+| `space-4`   | `16px` | Default content gap                  |
+| `space-5`   | `20px` | Card padding, control bands          |
+| `space-6`   | `24px` | Heading group, tablet gutter         |
+| `space-8`   | `32px` | Page top on mobile, compact section  |
+| `space-10`  | `40px` | Regular control or medium separation |
+| `space-12`  | `48px` | Page section, desktop page top       |
+| `space-16`  | `64px` | Major separation                     |
+| `space-20`  | `80px` | Rare hero or display separation      |
+
+Use `1px` only for hairlines and borders. Values outside the table require a
+comment describing the optical or technical reason.
+
+### Semantic spacing recipes
+
+| Relationship            |    Mobile |                                  Desktop |
+| ----------------------- | --------: | ---------------------------------------: |
+| Page top                |    `32px` |                                   `48px` |
+| Page bottom             |    `48px` |                                   `48px` |
+| Page gutter             |    `16px` | `24px`; `32px` on wide layouts from `lg` |
+| Header to first content | `24–32px` |                                   `32px` |
+| Major page section      |    `40px` |                                   `48px` |
+| Compact page section    |    `32px` |                                   `32px` |
+| Heading to content      |    `12px` |                                   `16px` |
+| Content to next heading |    `24px` |                                   `32px` |
+| Body paragraph          |    `16px` |                                   `16px` |
+| Long-form paragraph     |  `1.25em` |                                 `1.25em` |
+| Related rows            |  `8–12px` |                                   `12px` |
+| Card/panel padding      |    `16px` |                                   `20px` |
+| Control group           |     `8px` |                                   `12px` |
+| Rule to content         |    `20px` |                                   `24px` |
+
+### Flow utilities
+
+- `flow-prose`: `16px` between prose siblings.
+- `section-gap`: `48px` after a major page section.
+- `section-stack`: `48px` between major section siblings.
+
+Flow utilities apply to sibling relationships. Avoid placing persistent bottom
+margins on reusable headings, paragraphs, or buttons. Add another named flow
+only after the same relationship appears in multiple components.
+
+### Negative spacing
+
+Negative margins are permitted only for:
+
+- optical alignment of media within a known card;
+- an intentional overlap or paper/print effect;
+- counteracting a wrapper’s documented inset.
+
+Each use must be component-scoped and commented. Do not use negative margins
+to repair an unclear page-flow API.
+
+## Layout
+
+### Breakpoints
+
+| Token |    Width |
+| ----- | -------: |
+| `xs`  |  `375px` |
+| `sm`  |  `480px` |
+| `md`  |  `768px` |
+| `lg`  | `1024px` |
+| `xl`  | `1280px` |
+| `2xl` | `1536px` |
+
+Design mobile first. Breakpoints respond to available width, not a presumed
+device.
+
+### Containers
+
+| Variant    |                    Maximum width | Gutters          | Use                                |
+| ---------- | -------------------------------: | ---------------- | ---------------------------------- |
+| `reading`  |                           `68ch` | inherited        | Long-form text only                |
+| `standard` |                          `820px` | `16 / 24px`      | Home, Research, Blog, CV           |
+| `wide`     |                         `1152px` | `16 / 24 / 32px` | Photography and Bookshelf          |
+| `overlay`  | `1280px` or viewport-constrained | `16–32px`        | Media lightboxes and game panels   |
+
+Header and footer use the standard container even when the page body is wide.
+So does the page header: on a wide route the title, aside, and deck stay in
+the standard column, aligned with the wordmark, and only the collection below
+(the photo grid, the bookshelf toolbar and table) breaks out to the wide
+measure. That preserves a consistent site frame, keeps the title from jumping
+sideways between routes, and lets task-specific content expand.
+
+### Grid rules
+
+- Start with one column.
+- Use Grid for page-level multi-column layouts and Flexbox for small
+  one-dimensional relationships.
+- Maintain a `16px` minimum content gap on mobile and `20–24px` on desktop.
+- Do not force prose to fill a wide data or media container.
+- About is an approved editorial grid at `xl`: a fixed `68ch` reading measure
+  inside a guttered main track, a `32px` column gap, and a sidenote column up
+  to `224px` wide. The main column stays anchored to the standard page
+  position while the sidenotes extend right without recentering it. The
+  compound wrapper expands to fit both columns; the reading track must never
+  shrink to accommodate the sidenotes. Near the `xl` boundary only the
+  sidenote column may narrow to prevent horizontal overflow. Below `xl`,
+  footnotes move below the main content.
+- The Photography grid may use dense masonry-like placement.
+- The Bookshelf may use horizontal table overflow, but controls and pagination
+  must remain usable without horizontal page scrolling.
+- Align related baselines and repeated control heights optically.
+
+### Page shell and page header
+
+Every page selects a container variant, and `PageShell` builds the header from
+three parts:
+
+- **Title** (`heading`): `type-page-title`, lowercase.
+- **Aside** (`slot="aside"`): an optional line of interface text that shares
+  the title's baseline at the right: counts, filters, sort, a download. It uses
+  `type-meta` color and size, and its controls are text controls (see
+  Buttons). It wraps under the title on narrow screens with a `12px` gap.
+- **Deck** (`slot="deck"`): an optional `type-deck` sentence under the title,
+  `12px` below it, capped at `58ch`.
+
+The masthead carries only the wordmark and navigation. The page's title and
+the active nav item already say where the reader is, so the header does not
+repeat the page name as a breadcrumb.
+
+Spacing to content follows from what the header holds, or from an explicit
+`headerVariant`:
+
+- `title-only`: title, then `24px` to content.
+- `deck`: `12px` title-to-deck, then `32px` to content.
+- `meta`: `12px` title-to-meta, then `32px` to content.
+- `action`: title and aside share a row; `32px` to content.
+
+The page title itself has no external margin. The page-header recipe owns the
+relationship. A route that needs a different header (About, blog posts) may
+still pass its own `slot="header"`, using the same `page-header` classes.
+
+## Surfaces, borders, radius, and shadow
+
+### Surface model
+
+1. Page: warm paper or near-black.
+2. Subtle layer: a small value shift for control bands or grouped content.
+3. Raised layer: dropdown, tooltip, drawer, or dialog.
+4. Expressive layer: riso banner or game UI.
+
+Do not add a card merely to group content. Prefer whitespace, a hairline, or a
+subtle background wash.
+
+### Borders
+
+| Token             | Value                                     | Use                                   |
+| ----------------- | ----------------------------------------- | ------------------------------------- |
+| `border-hairline` | `1px solid border-subtle`                 | Rules, table rows, quiet panels       |
+| `border-control`  | `1px solid border-strong` on focus/active | Inputs and compact controls           |
+| `border-emphasis` | `2px solid text-strong`                   | Riso outline or strong selected state |
+| `border-focus`    | `2px solid focus-ring`                    | Keyboard focus only                   |
+
+`border-focus` is not applied by hand. It is the shape of the one global
+`:focus-visible` rule described under [Focus](#focus); components inherit it.
+
+### Radius
+
+| Token            |  Value | Use                                     |
+| ---------------- | -----: | --------------------------------------- |
+| `radius-control` |  `2px` | Buttons, filters, pills                 |
+| `radius-inline`  |  `4px` | Inline code and small highlights        |
+| `radius-media`   |  `8px` | Images, media frames, standard panels   |
+| `radius-panel`   | `12px` | Large dialogs or special media surfaces |
+
+The riso banner’s asymmetric radii are an approved exception.
+
+### Shadow
+
+| Token            | Value                             | Use                              |
+| ---------------- | --------------------------------- | -------------------------------- |
+| `shadow-none`    | none                              | Ledger rows and ordinary content |
+| `shadow-popover` | `0 10px 28px rgb(81 81 81 / 12%)` | Dropdowns and tooltips           |
+| `shadow-dialog`  | `0 12px 36px rgb(81 81 81 / 10%)` | Drawers and modal panels         |
+
+Dark-theme shadows use black at no more than 32% and must be paired with a
+visible boundary where adjacent surfaces are similar.
+
+### Layer scale
+
+| Token           | z-index | Use              |
+| --------------- | ------: | ---------------- |
+| `layer-base`    |     `0` | Normal content   |
+| `layer-raised`  |    `10` | Local decoration |
+| `layer-sticky`  |    `20` | Sticky panels    |
+| `layer-tooltip` |    `30` | Tooltip          |
+| `layer-popover` |    `40` | Dropdown         |
+| `layer-overlay` |    `50` | Backdrop         |
+| `layer-modal`   |    `60` | Dialog content   |
+| `layer-cursor`  |    `70` | Custom cursor    |
+
+No component should invent a z-index above this scale.
+
+## Iconography
+
+- Use `@jis3r/icons` for expressive or animated controls when an appropriate
+  icon exists.
+- Use a small local SVG component for a branded or genuinely missing symbol.
+- Do not add a second general-purpose icon dependency for one glyph. If a
+  second family becomes necessary, document the gap and check its optical
+  weight before adoption.
+- Keep a consistent apparent stroke and box size:
+
+| Context               |   Size |
+| --------------------- | -----: |
+| Dense inline metadata | `12px` |
+| Standard metadata     | `14px` |
+| Control icon          | `16px` |
+| Navigation/social     | `18px` |
+| Heading/support       | `20px` |
+| Standalone action     | `24px` |
+| Modal close           | `32px` |
+
+- Icons that convey information need an accessible name, visible label, or
+  equivalent text.
+- Decorative icons use `aria-hidden="true"`.
+- Apply a `1–2px` optical translation only when documented in the component.
+
+## Imagery and illustration
+
+- Use real photography and project media rather than stock imagery.
+- Preserve source aspect ratio unless the component is explicitly a cropped
+  thumbnail.
+- Standard media radius is `8px`.
+- Captions are interface text, not prose: NHG Text at `13px / 1.4`, `400`,
+  `0.005em` tracking, `text-secondary` (`ink-500`, `cream-500` in dark),
+  left-aligned under the media's edge, and a maximum `45ch` measure. A bare
+  `figcaption` gets the interface face from the base styles.
+- Every meaningful image needs descriptive alt text.
+- A filename is never alt text and never a caption. An image with no
+  human-written description is presentational: give it `alt=""`, render no
+  title line, and put the accessible name on the control that wraps it. A
+  derived string like `152 IDG 20251109 145157 722 103` is worse than nothing,
+  because it is announced as though it described the picture.
+- Photography captions come from the photo’s IPTC/XMP Title (Lightroom’s
+  **Title** field) or from an entry in `scripts/photo-captions.json`, in that
+  order of precedence.
+- Format metadata before displaying it. Raw EXIF is not display copy: a focal
+  length arrives as `6.764999866485596 mm` and must be rounded.
+- Animated research media must have a useful static first frame.
+- Hover-only media behavior must also respond to keyboard focus.
+- The paper texture stays subtle enough that it does not affect contrast.
+
+## Motion
+
+### Tokens
+
+| Token            | Duration | Use                                |
+| ---------------- | -------: | ---------------------------------- |
+| `motion-instant` |  `100ms` | Press or tiny state response       |
+| `motion-fast`    |  `150ms` | Color and underline                |
+| `motion-base`    |  `200ms` | Hover, active, icon response       |
+| `motion-slow`    |  `300ms` | Popover, tooltip, small disclosure |
+| `motion-reveal`  |  `400ms` | Page or section entrance           |
+
+Approved easing:
+
+- `ease-standard`: `cubic-bezier(0.4, 0, 0.2, 1)`;
+- `ease-emphasized`: `cubic-bezier(0.16, 1, 0.3, 1)`.
+
+#### Page transitions
+
+Route changes are the one animation that fires on every interaction, so they
+get their own, shorter budget. All of it lives in `src/lib/motion.ts`:
+
+| Constant                       |  Value | Note                                     |
+| ------------------------------ | -----: | ---------------------------------------- |
+| `PAGE_TRANSITIONS_ENABLED`     | `true` | Master switch                            |
+| `PAGE_TRANSITION_DURATION_MS`  | `180`  | Both directions                          |
+| `PAGE_TRANSITION_IN_DELAY_MS`  |   `0`  | New content paints immediately           |
+| `PAGE_TRANSITION_IN_X`         | `-8px` | Enter travel                             |
+| `PAGE_TRANSITION_OUT_Y`        |  `4px` | Exit travel                              |
+
+`motion-reveal` (`400ms`) is for a section entering an already-visible page,
+not for the page itself.
+
+The outgoing and incoming pages occupy the same single-cell grid inside one
+stable `<main>`, so they overlap during the transition instead of stacking and
+briefly doubling the page height. The `<main>` landmark and the skip-link
+target are never duplicated.
+
+### Motion rules
+
+- Animate `transform` and `opacity` where possible.
+- Color transitions use `motion-fast` or `motion-base`.
+- A press state uses `translateY(1px)` or `scale(0.98)`.
+- Staggers use `30–40ms` steps and stop increasing after ten items.
+- Page transitions use the budget in [Page transitions](#page-transitions) and
+  no more than `10px` movement.
+- Disclosures may animate height only when content remains accessible and no
+  clipping occurs under text-spacing overrides.
+- `prefers-reduced-motion: reduce` removes decorative travel, shake, stagger,
+  pulse, and smooth scrolling. State changes remain immediate.
+- Read `prefers-reduced-motion`, `prefers-color-scheme`, input type, and
+  breakpoint through a **live** `matchMedia` listener, never through a single
+  read at module scope. All of them can change while the page is open — a
+  trackpad is attached, the window is resized, the system setting is flipped —
+  and a value captured once at import silently goes stale until reload.
+- Detect input type with `(hover: none) and (pointer: coarse)`, not by sniffing
+  the user-agent string. A UA test reads iPad and touch laptops as desktop.
+- The boba arcade may use bespoke physical timing, but menus and controls still
+  honor reduced motion.
+
+## Components
+
+### Links
+
+Default inline link:
+
+- `link-default` color;
+- no permanent underline in short navigation-like copy;
+- underline on hover and focus, `3px` offset;
+- focus ring uses the shared focus recipe;
+- visited color may remain unchanged on this personal site.
+
+Long-form links should remain underlined by default. Never rely only on an
+accent color to distinguish a link inside a paragraph.
+
+Subtle links use `text-secondary`, become `link-default` on hover, and do not
+move vertically unless the entire component family uses the same treatment.
+
+### Buttons
+
+Variants:
+
+- Primary: ink background, cream text; inverted in dark mode.
+- Secondary: transparent or subtle surface, one-pixel strong border.
+- Tertiary: text link with an icon; no container.
+- Text control (`control-text`): the interface-font text button used for
+  filters, sort, tabs, pagination steps, and header actions. `12px` NHG Text
+  at `400` with `0.01em` tracking and tabular figures, `28px` minimum height, `6px` horizontal padding, no border. Hover is a
+  4% ink fill; the pressed state (`aria-pressed="true"`) is a 7% fill with ink
+  text, so a row of tabs reads like the navigation rather than like a set of
+  boxes. `control-label` sets the dimension a control acts on ("year", "tag",
+  "sort") quieter than its value; `control-accent` marks an action rather than
+  a filter ("Download PDF", "clear").
+- Destructive: reserved for destructive actions, with explicit wording and a
+  support color tested for contrast.
+
+Density:
+
+| Variant | Minimum height | Horizontal padding |
+| ------- | -------------: | -----------------: |
+| Dense   |         `28px` |           `8–10px` |
+| Compact |         `32px` |             `12px` |
+| Regular |         `40px` |             `16px` |
+
+Rules:
+
+- Primary calls to action use Regular.
+- Toolbars and tables may use Dense or Compact.
+- Pointer targets are at least `24 × 24px` or have WCAG-compliant separation.
+- All buttons have default, hover, focus-visible, active, and disabled states.
+- Buttons and text controls use the interface font (NHG Text) at `400`.
+- Icon and label gaps are `6–8px`.
+
+### Form controls
+
+- Regular input height: `40px`; dense data input: `36px`.
+- Horizontal padding: `12px`.
+- Input and select text: `type-body-small` or `type-meta` for dense controls.
+- Default border: subtle; hover border: secondary; focus: solid semantic focus
+  ring plus a stronger field border.
+- Placeholder text uses `text-secondary`, not a failing muted color.
+- Errors appear inline below the field with text and icon; color alone is not
+  sufficient.
+- Select triggers are text controls: the dimension as a `control-label`, the
+  current value, and a `12px` chevron. A value that is filtering the view is
+  set in the accent, so a glance at a toolbar shows what is narrowing it.
+- Dropdown rows are `28px` high (dense), above the `24px` target minimum, with a
+  fixed marker column so the selected mark never shifts a label.
+- A long option list gets a filter field at the top of its menu and may show a
+  right-aligned count per option. Options with nothing behind them in the
+  current view drop out, except one that is selected or excluded.
+- Menus flip to the trigger's right edge when they would overflow the
+  viewport.
+- Control groups use `8–12px` gaps and wrap on narrow screens.
+
+### Pills and tags
+
+- Pills are metadata, not primary actions.
+- Use interface type (NHG Text) at `12px / 1.333`, `400`, `0.01em` tracking,
+  lining tabular figures, `6px` horizontal and `2px` vertical padding, `4px`
+  internal gap, and `2px` radius.
+- Neutral pills use a 5–8% ink/cream fill and secondary text.
+- Status pills use one approved support family.
+- Interactive pills must meet the same focus and target-spacing rules as other
+  controls.
+- Do not add a second `text-xs` utility to a pill recipe; the pill owns its
+  leading.
+
+### Section heading with rule
+
+- Heading: `section-heading`.
+- Rule begins `16px` after the heading.
+- The rule fades away from the heading and is decorative.
+- The wrapper owns the bottom gap, normally `20–24px`.
+- A page should not mix ruled and unruled section headings at the same
+  hierarchy level without a content reason.
+
+### Ledger row and research card
+
+- Default surface is transparent.
+- Padding: `16px` mobile, `20px` desktop.
+- Sibling gap: `12px`.
+- Hover uses a subtle warm wash; no elevation or lift.
+- Title uses `type-item-heading`.
+- Authors and venue use `type-body-small`.
+- Links and tags begin `12px` after metadata.
+- Media is `160px` square on desktop and full width on mobile.
+- Highlight corners are decorative and cannot be the only indication of a
+  highlighted item.
+
+### Tables and dense data
+
+- Header uses `type-meta`, sentence case unless a short system label requires
+  uppercase.
+- Cell padding: `12px` horizontal and `10px` vertical.
+- Row boundaries use `border-hairline`.
+- Row titles (the Bookshelf's title and author) are scanned, so they use the
+  interface face at the row's size, `400`, with the author in the secondary
+  colour.
+- Numeric columns use lining tabular figures.
+- Sort state uses `aria-sort`, text, and an icon.
+- Hover, selected, and keyboard-focus states remain distinct.
+- **A row is a click target, not a control.** Never put `role="button"` and
+  `tabindex` on a `<tr>` that contains its own buttons or links: nested
+  interactive content inside a widget role is invalid, keyboard users tab into
+  controls the row claims to own, and a screen reader flattens the row’s name
+  into the concatenation of every cell. Give the row a real `<button>` — the
+  title cell is the natural place — and keep whole-row click as a convenience
+  that ignores clicks landing on any other control inside it.
+- **A table that needs a minimum width has a width below which it is not a
+  table.** Above that width, use the table. Below it, render the same records
+  as a stacked list rather than a horizontal scroll of a `1080px` grid on a
+  `390pt` screen. The bookshelf switches at `md`.
+- When columns disappear in the stacked form, their headers disappear with
+  them. Any icon-only column must regain a label inline.
+
+### Filter toolbars
+
+A collection with more than a couple of filters groups them by the question
+each one answers, in at most two rows of text controls, with no tinted band or
+boxed fields around them:
+
+- **Row one picks the list.** On the bookshelf: the category tabs, and at the
+  right the shelf switch ("read & watched" / "shelved"), each with its count.
+- **Row two narrows it.** An underline search field, the select triggers, and
+  `clear` when anything is set. Supporting disclosures (the rating scale) sit
+  at the end of the row.
+- Counts are faceted: each one says how many entries that choice would show
+  given every other active filter, so switching never lands on an unexpected
+  empty list.
+- The total lives in the counts and the pagination line (`1–30 of 572`); the
+  sort order lives in the column header. Neither is repeated in a status line.
+- A control that changes which list is shown must not move when it is used.
+  Copy that explains the views sits in a deck that stays the same for all of
+  them.
+
+### Companion detail panels
+
+A record list paired with a detail view has two presentations, chosen by
+available width, sharing one component:
+
+- **Sidebar** (`xl` and up): a sticky column beside the list. Not modal; the
+  list stays usable.
+- **Sheet** (below `xl`): a modal bottom sheet over a dimmed backdrop. Focus
+  moves in, is trapped, Escape closes, and focus returns to the row that opened
+  it. Stacking the panel underneath a wide scrolling table is not an
+  alternative — it puts the content a long scroll away from the tap.
+
+Lock background scrolling by pinning `<body>` at its current offset and
+restoring it on close. `overflow: hidden` alone does not hold on iOS Safari and
+loses scroll position.
+
+### Disclosures
+
+- Prefer a native `<details>`/`<summary>` for optional supporting content. It
+  is keyboard-operable, touch-operable, and announced correctly with no
+  scripting, which a hover tooltip is not.
+- Replace the default marker with the site’s drawn caret (see Marks).
+  `::marker` can only be sized and coloured, never positioned, so the native
+  triangle sits on the text baseline rather than its centre.
+- If the disclosure lives inside a status line, anchor its panel to that line
+  and take it out of flow, so opening it does not reflow the content below.
+
+### Marks
+
+The site draws its small marks instead of taking them from a font: two
+typographic marks, the key of the banner's updates log, and the banner's
+pushpin. All are the riso recipe of the banner and the interest loops at text
+size: an ink outline in the text colour, over a paper fill (`#FBF2E8`, dark
+`#2A2422`), with the accent plate (`#E85D4C`, dark `#F07563`) printed off
+register down and to the right. They live in `src/lib/marks.ts` and render
+through `<Mark kind="…" />` or `markHtml()`.
+
+- **Caret** (`kind="caret"`, `0.8em`) replaces `▸` on every disclosure. It
+  turns a quarter by itself inside an element with `aria-expanded="true"` or
+  a `<summary>` whose `<details>` is open; the plate keeps its down-right
+  offset while it turns. The turn uses `motion-slow` and the emphasized
+  easing, so reduced motion removes it.
+- **Separator** (`kind="dot"`, `0.6em`) replaces `·` between metadata items,
+  and marks the chosen option in a select menu, like circling it in pen. It is
+  the interest markers’ loop at separator size. As a separator it carries a
+  visually hidden `·`, so copied text and screen readers keep the separator;
+  as a purely visual marker it passes `text=""`.
+- **Updates key** (`0.95em`, the `14px` standard-metadata size beside
+  `type-body-small`) leads rows of the banner's updates log, like a
+  bullet-journal key printed on a risograph. It doesn't turn. Its ink is
+  thinned to `1.5` so the printed stroke matches the caret's at the larger
+  size. Each kind says what the update is:
+
+  | Kind        | Shape                                | For                                                   |
+  | ----------- | ------------------------------------ | ----------------------------------------------------- |
+  | `paper`     | None: the date alone                 | Things written: papers, preprints, the CV, blog posts |
+  | `read`      | A bookmark ribbon, notched           | Things read                                           |
+  | `talk`      | A speech bubble, tail bottom-left    | Talks, posters, visits, conversations                 |
+  | `milestone` | A four-point spark                   | Acceptances, awards, applications submitted           |
+  | `note`      | A drawn loop, the separator's cousin | Everything else, and any unknown kind                 |
+
+  Written things are the log's usual business, so they go unmarked and the
+  drawn keys stand out for the rest. The key is decorative; each row carries
+  its kind as a visually hidden word ("Paper:", "Reading:", "Talk:",
+  "Milestone:"; nothing for a note), so the kind is never carried by shape
+  alone.
+- **Pin** (`kind="pin"`, `0.95em`, the key's size) is the key of the log's
+  pinned first row, ahead of its date like any other key. Its ink is thinned
+  to `1.3` so the cap, waist, and collar stay open at `14px`. It is drawn
+  side-on (flat cap, waisted barrel, flared collar, needle). The path is
+  upright; the row tilts it `-12deg`.
+- A shape is one closed outline (`d`), printed as plate, paper, and ink, plus
+  optional ink-only strokes (`detail`) for interior lines that shouldn't get a
+  plate or fill of their own: the pin's needle.
+- Separators typed into trusted HTML (CV publications, Markdown posts) are
+  swapped for the drawn mark by `withMarks()`; don’t hand-write the SVG.
+- Each shape closes on itself. At this size an overshooting pen tail reads as
+  a stray stroke, not a gesture.
+- The plate’s offset must clear half the ink’s stroke with room to spare, or
+  the plate hides under the ink and the mark reads as plain grey.
+- A dark surface in both themes (the photo lightbox) sets `--mark-paper` and
+  `--mark-plate` for its marks.
+- Canvas text (the boba arcade’s floating scores) can’t hold a drawn mark and
+  keeps the plain `·`.
+
+### Tooltips and popovers
+
+- Tooltip text uses `type-meta` and a maximum `45ch`.
+- Padding: `8px 12px`.
+- Tooltip radius: `4px`; popover radius: `2–8px` according to its parent
+  component.
+- Tooltips supplement an accessible name; they do not contain essential
+  interaction.
+- Popovers support keyboard entry, escape dismissal, focus return, and viewport
+  collision handling.
+
+### Dialogs and lightboxes
+
+- Backdrop uses `ink-900` at 95% for media or 56–70% for a panel dialog.
+- Dialog layer uses `layer-modal`.
+- Close target is at least `32px`, preferably `40px`.
+- Focus moves into the dialog, is trapped while open, and returns to the
+  trigger.
+- Escape closes the dialog.
+- Media is constrained by both `max-width` and `max-height`.
+- Caption sits `16px` below media.
+- **Give media its intrinsic `width` and `height`.** Without them the frame has
+  no size until the file decodes, so the loading placeholder covers a
+  zero-height box and the panel jumps when the image lands. The dimensions are
+  already in the photo manifest.
+- Preload the neighbouring items on open and on navigate, so stepping through a
+  set does not re-show the placeholder each time.
+- Support swipe on touch as an **addition** to the arrows. Ignore drags that
+  are more vertical than horizontal, and ignore mouse drags, so a scroll or a
+  text selection is never read as navigation.
+- Announce position changes through a live region; a visual `3 / 132` counter
+  is decorative and should be `aria-hidden`.
+
+### Empty, error, loading, and disabled states
+
+- Empty states explain what is absent and provide the next useful action.
+- Error states state what failed and how to recover; avoid “Oops!”
+- Loading placeholders match the shape of the eventual content.
+- Disabled controls remain understandable but do not need ordinary text
+  contrast; they must not appear interactive.
+- Keep state copy calm, direct, and specific.
+
+### Header
+
+- Standard container.
+- `28px` top padding on mobile, `32px` from `md`.
+- Mobile layout may wrap into two rows with an `8–12px` gap.
+- Wordmark is live text in NHG Text `500` (the one interface-weight
+  exception), set from `SITE.wordmark` in `src/lib/site.js`. It stands alone:
+  no breadcrumb segment after it.
+- From `md` up the header is sticky with the page colour behind it and no rule
+  under it. It sticks at `top: -1.25rem`, so the first `20px` of its top
+  padding scrolls away and the pinned bar is slimmer than the resting header
+  without any layout shift.
+- Navigation uses `type-nav` (NHG Text, `13px / 1.4`, `400`, `0` tracking).
+- Navigation destinations are separated by a `16px` horizontal gap rather
+  than punctuation.
+- Active navigation uses both color and `aria-current`; add an underline or
+  weight change if color contrast is insufficient.
+- Navigation hit area comes from padding/min-height, not `2.33` line-height.
+- Theme control is a minimum `28 × 28px` target with visible focus.
+
+### Footer
+
+- Standard container and subtle top rule.
+- `24px` rule-to-content spacing and `32px` bottom spacing.
+- Metadata uses interface type with tabular time.
+- Footer copy may be lowercase, but accessible labels use natural sentence
+  case.
+
+## Dark theme
+
+- Dark mode changes semantic values, not component meanings.
+- Surfaces become one step lighter as they rise.
+- Use `cream-100/200` for strong and primary text, `cream-400/500` for
+  secondary text. Never the ink ramp: every ink value is near-black and
+  disappears on `ink-900`.
+- Do not use `accent-dark` for text on `ink-900` (`3.65:1`).
+- **Check text against raised surfaces, not just the page.** `ink-800` carries
+  the select dropdown, the note sheet, and the note sidebar. A color that
+  passes on `ink-900` can fail there by a full step.
+- A *selected* row is a state, not a raised surface. Express it as a warm
+  accent wash (`bg-accent/[0.08]`) plus the accent outline, matching the light
+  theme, rather than stepping the row up to `ink-800` — stepping up lifts the
+  effective background under every tinted pill inside that row.
+- Shadows alone do not distinguish dark surfaces; include a border or value
+  shift.
+- Photography and research media retain their native colors.
+
+### Appearance and the theme control
+
+- **The theme is an explicit saved choice, not the system appearance.** Light
+  is the default until someone toggles; the preference lives in
+  `localStorage` and is applied by an inline script before first paint. This is
+  a deliberate departure from the usual "follow the system" convention.
+- Because the choice is explicit, everything that describes the appearance must
+  follow the resolved theme rather than `prefers-color-scheme`:
+  - `color-scheme` tracks the `.dark` class in `app.css`, so the browser paints
+    the surfaces it owns — scrollbars, the text caret, form-control chrome,
+    spellcheck underlines — to match. Without it those stay light on a
+    near-black page.
+  - `theme-color` is a single meta element updated alongside the class. Two
+    metas gated on `prefers-color-scheme` let the browser chrome disagree with
+    the page whenever the saved choice differs from the system.
+- The toggle shows the **current** theme, not the destination, and carries
+  `aria-pressed`. A control whose appearance never changes reads as inert.
+
+## Accessibility requirements
+
+Focus, dark-theme contrast, keyboard operation, hover independence, and status
+announcement are implemented. Light-theme contrast and pointer target size are
+deferred by direction; both are marked below.
+
+### Contrast
+
+- `4.5:1` minimum for ordinary text.
+- `3:1` minimum for qualifying large text and essential graphics.
+- Focus indicators reach `3:1` against adjacent colors.
+- Test every semantic pair in both themes, against the **composited**
+  background and at the element’s resting `opacity`.
+- Test raised surfaces as well as the page, and test each interactive state
+  that only exists once opened: dropdowns, sheets, sidebars, lightboxes, empty
+  states, and expanded disclosures.
+
+**Status.** Dark theme: clean across every route and interactive state. Light
+theme: **deferred by direction**. Known failures: `RatingGlyph`'s `ink-400`
+placeholders (`3.69:1`), the About sidenote opacity, `footnote-ref` in `accent`
+(`3.26:1`), and the `404` hero in `ink-300` (`2.36:1`).
+
+### Focus
+
+Canonical treatment, declared once in `app.css` and inherited by every
+interactive element:
+
+```css
+:root      { --focus-ring: #c9462f; } /* accent-dark  */
+.dark      { --focus-ring: #f18272; } /* accent-light */
+
+:focus-visible {
+  outline: 2px solid var(--focus-ring);
+  outline-offset: 2px;
+}
+```
+
+Rules:
+
+- **A component never removes the ring.** `outline: none` is not permitted,
+  and neither is replacing the ring with a background tint or a one-pixel
+  border shift, which fall far below `3:1` against their own surface.
+- A component may adjust `outline-offset` and `border-radius` so the ring hugs
+  the right shape. Where a control sits flush inside a clipped, scrolling
+  container — a select option — use a negative offset so the ring is drawn
+  inside the row instead of being cut off at the first and last item.
+- Do not use an opacity that drops the ring below `3:1`. Rings at `35–40%`
+  opacity blend to roughly `1.6:1` and are not a focus indicator.
+- Hover and focus may share a tint, but focus keeps the ring on top of it.
+- `ring-*` utilities are never a focus indicator. Tailwind’s stock `ring-*`
+  and `ring-offset-*` default to blue-500 on white, so `ringColor` and
+  `ringOffsetColor` defaults are pinned to palette values in
+  `tailwind.config.js` as a backstop, not as an invitation.
+
+The boba arcade inherits the global ring like everything else; its riso
+sheets do not restyle focus.
+
+### Target size
+
+**Deferred by direction.** Recorded here as the standing requirement:
+
+Meet the [WCAG 2.2 24px target minimum](https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum)
+or its spacing exception. Prefer `40px` for primary controls and at least
+`28–32px` for dense interface controls.
+
+Known gaps: site navigation links are roughly `16px` tall with a `4px` wrapped
+row gap, and interactive pills are roughly `17px` tall with `4px` neighbours.
+Both can be fixed without changing anything visible — `min-height` plus
+vertical padding on the nav links, and an inset `::after` on interactive pills.
+
+### Text customization
+
+The site must retain all content and functionality when a user applies:
+
+- line-height `1.5`;
+- paragraph spacing `2em`;
+- letter spacing `0.12em`;
+- word spacing `0.16em`.
+
+Avoid fixed-height text containers, clipping, and non-wrapping UI where these
+overrides could cause loss. This requirement comes from
+[WCAG 2.2 Text Spacing](https://www.w3.org/WAI/WCAG22/Understanding/text-spacing).
+
+### Reflow and zoom
+
+- Test at 200% browser zoom and a 320 CSS-pixel viewport.
+- Reading content must not require horizontal scrolling.
+- A data table may scroll inside its own labeled region.
+- Dialogs and drawers remain reachable and internally scrollable.
+
+### Motion and input
+
+- Honor reduced motion.
+- Do not require hover to reveal essential information. If a relationship,
+  definition, or label exists only in a hover state, it does not exist on a
+  touchscreen. Give it a real home: a link, a native `<details>`, or visible
+  text, and keep the hover treatment as an enhancement on top.
+- A hover target must be big enough to hover. A tooltip triggered by a `14px`
+  glyph is a hover target the size of a glyph; pad the wrapper instead.
+- Every pointer action has a keyboard path, and every gesture has a
+  non-gesture equivalent. Swipe is an addition to the arrows, not a
+  replacement for them.
+- Focus order follows reading order.
+- Skip-to-content remains the first keyboard-reachable control, and the
+  `#main-content` target is a single stable element — including mid-transition.
+
+### Status and announcement
+
+- Any state change with a visual-only signal needs an `aria-live="polite"`
+  region: a filtered result count, a position within a set, a transient
+  confirmation.
+- Announce the truth. A confirmation must reflect what actually happened —
+  a clipboard write that rejects reports the failure and the fallback, it does
+  not claim success.
+- A transient visual confirmation and its live region are the same message:
+  mark the visual one `aria-hidden` so it is not announced twice.
+
+## Content and editorial style
+
+- Write in a specific, direct, conversational voice.
+- Prefer active voice.
+- Avoid generic marketing terms such as “elevate,” “seamless,” “unleash,” and
+  “game-changing.”
+- Use sentence case for actions and lowercase for the established editorial
+  navigation/heading voice.
+- Use real dates, names, titles, and project details.
+- Keep success messages calm; avoid unnecessary exclamation marks.
+- Keep error messages actionable.
+- Use en dashes for ranges and em dashes sparingly.
+- Preserve conventional capitalization for institutions, papers, people, and
+  acronyms even within a generally lowercase interface.
+
+## Expressive exceptions
+
+### Riso banner
+
+The homepage's updates log: one wobbly cream sheet over an offset accent
+slab, holding a single list with no heading or rule of its own. The sheet's
+padding is `20px` all round, `24px` at the sides from `md`.
+
+- **Rows.** Each row is a grid of the date and the text, sharing the first
+  line's baseline; wrapped text hangs under the text column. Dates start on
+  the sheet's content edge. A key hangs ahead of its date in the sheet's
+  padding, `4px` from it, like a hanging bullet, so it takes no column and
+  never indents the log; the scroll window reaches into the padding by the
+  same amount so a hanging key isn't clipped. Below `sm` the row stacks:
+  date on one line, the text beneath on the same edge; the phone sheet's
+  padding is too narrow to hang a key, so there the key sits ahead of the
+  date on its line. Dates are `type-meta` in the secondary colour,
+  in one fixed `46px` column so they align down the log: `nov 12`, or
+  `nov ’25` when the year differs from the newest entry's. The short year
+  keeps every label inside that column, so an old entry never widens it and
+  shifts the text. They are formatted from the date string, never through
+  `Date`, so an entry can't shift a day. Text is `type-body-small`; links to
+  the site stay in the same tab.
+- **Voice.** Entries are announcements, not a changelog: "New blog post: …",
+  "New paper on arXiv: …", "Three papers accepted to ACL 2026 … See you
+  there." Every date is a real day with a source (a post's frontmatter, an
+  arXiv v1, an official notification or event date); an item known only to
+  the month stays out.
+- **Pinned row.** The first row is the one sentence a recruiting reader
+  needs (applying to Ph.D. programs, then email, CV, and research), with the
+  inline projects disclosure expanding beneath it. It is an ordinary row:
+  dated the day the sentence first went up (`banner.leadDate`), with the
+  drawn pin (see Marks) as its key. It stays first whatever its date. The
+  pin is decorative: a visually hidden "Pinned:" opens the sentence.
+- **Scrolling updates.** The dated rows, newest first, sit one ordinary row
+  gap below the pinned row, in a window three single-line rows tall plus
+  three quarters of a fourth (taller on phones, where rows stack), and
+  scroll inside it. A fade of the sheet's own paper covers whichever edge
+  has more behind it. The bottom fade starts at the peeking row's top and
+  turns solid just before the edge, so that row stays legible as "more"
+  without showing a hard cut; the thin scrollbar is a secondary cue. The
+  window takes keyboard focus only when it overflows. With no updates, the
+  sheet holds only the pinned row.
+- Entries live in `banner.updates` in `src/content/homepage.yaml`; the
+  pinned sentence and its date are `banner.lead` and `banner.leadDate`.
+
+May use:
+
+- asymmetric radii;
+- offset foreground/background plates;
+- rough SVG displacement;
+- small optical translations;
+- a bespoke cream and dark paper surface.
+
+Must still use accessible semantic text, link, focus, and selection colors.
+
+### Boba arcade
+
+The pixel boba on the homepage opens a menu of small games. The arcade owns a
+separate `.boba-*` system with its own rules for type, surfaces, buttons,
+motion, sound, and each game's look; they live in the
+[boba arcade style guide](arcade-style-guide.md). Two things are worth knowing
+from here:
+
+- Inside the arcade the type is Neue Haas Grotesk only, and the accent slab is
+  opt-in. Neither exception applies anywhere else on the site.
+- The arcade still inherits this guide's palette, focus ring, contrast,
+  target-size, layer, and reduced-motion rules, and its styles must not leak
+  into ordinary routes.
+
+### Canvas and generated art
+
+Canvas shaders, LEGO image treatment, and pixel sprites may use internal
+rendering values. Their surrounding controls, captions, and states use the
+website system.
+
+The homepage's falling leaves (`FallingLeaves.svelte`) are the one ambient
+animation. They stay in the margin right of the content column, never under
+text, and only from `1080px` up, where that margin can hold a leaf. They fall
+through the lower half of the screen only, fading in around its middle, so
+the top of the page stays clear. Each leaf is
+drawn on a screen-aligned `6px` grid: rounded squares where the blade covers a
+cell, NHG Text density glyphs (`.:-=+*#%`) where it only partly covers one, and
+a stroke glyph for the stem. They are drawn faint (50% light, 42% dark) from
+an autumn palette weighted toward reds and oranges (with browns and a few
+golds), each leaf turning from one colour at its stem toward another at its
+tip. About one in five is still turning: green at the stem, warm at the tip
+(tips turn first, so green never sits at the tip). A passing pointer stirs them
+and a click in the margin gusts them, but soft walls keep them in the margin
+and speed is capped, so nothing flies.
+
+They pile up at the bottom of the screen. A leaf picks its resting spot a
+couple of lengths above the pile and keeps falling exactly as before, steering
+toward it no faster than its own drift; on the way it stops tumbling, lies
+down, foreshortens, and crumples (its blade ripples, its tip curls in, a
+maple's lobes pull together), and it lands exactly on its spot, so baking it
+into the pile changes nothing on screen. Its spot is where its footprint comes
+to rest: down slopes, and off any side it overhangs until its centre is over
+what holds it up; above `16%` of the screen's height it takes the lowest spot
+in reach instead. The pile is solved by events, never by a running loop, so a
+resting leaf never jitters. Leaves only move again when ones under them leave,
+by being kicked up or by slipping out under the screen once the pile holds more
+than 4.5 leaves per `100px` of margin, and then they fall the same way, never
+glide as an image. Reduce Motion leaves one still frame, pile included.
+
+### Share cards
+
+Every post with artwork gets a 1200×630 share card, so a link pasted into X,
+Slack, or iMessage previews the work rather than the portrait. The card is a
+figure plate: the post's own art in a rounded media frame
+above a caption line, with the title in NHG Display, the excerpt in
+Optima italic, and the name and domain in NHG Text at the right.
+
+`npm run og` (dev server running, local Chrome) crops the art from the post's
+live page into `static/images/og/art/`, retrying until a late-drawing piece
+has actually painted, then lays the card out on the dev-only `/dev/og/<id>`
+route. Point the post's `image` (and `imageAlt`) at the result. Cards are
+fixed-size images, so their type is set in `px`. Art that would lose its
+subject to the wide crop is fitted whole on its own flat ground, and
+text-heavy art crops from its top left; both live in `$lib/og-art`.
+
+### Lately
+
+The homepage's last section, after selected works: research leads the page,
+and this gives a reader who stayed somewhere to go next. It shows the three
+newest posts, each led by the art `npm run og` cropped (a post without art
+gets a quiet plate naming where it lives), in three columns from `sm` and as
+compact rows with a small plate on phones. Thumbnails keep a hairline edge so
+pale art holds its shape on the paper; hover changes the title's colour and
+warms the art slightly, with no lift.
+
+### Post footer
+
+One `type-meta` line after a post's last paragraph, above the older/newer
+links: follow along on RSS or X, or write by email. It asks the reader back;
+the older/newer links move sideways through the archive.
+
+### Research explainers
+
+Every paper carries a live explainer: hand-written inline SVG animated by a
+GSAP timeline (`src/lib/explainers/`), registered by paper id and rendered by
+`PaperMedia` as the paper's card media and lightbox. A paper without an
+explainer shows no media. Every explainer is drawn on the same plate so the set
+reads as one system.
+
+- **Plate.** A 240-unit square on `surface-raised` (`cream-50` / `ink-800`),
+  inside the standard `8px` media frame. Content sits in a 14-unit margin; the
+  bottom band holds the caption and, on the card, the progress rail.
+- **Palette roles.** Ink carries structure. `accent` is the paper's subject
+  (the LLM, the model, the claim); `steel` is the human or reference side;
+  `sage` is ground truth (the correct answer, the child benchmark). Colors come
+  from the `--xp-*` variables in `ExplainerFrame.svelte`, which switch with the
+  theme. Tints use `fill-opacity`, never `opacity`, because the timeline owns
+  opacity.
+- **Type.** Optima for content, Optima italic for the caption (the site's
+  section-heading voice), NHG Text for letters, labels, and ticks (the
+  `.xp-mono` class; the name is historical, there is no monospace), and NHG
+  Display only for a hero number. The scale is `T` in `motion.ts`: content
+  21 units (about 14px on the 160px card), captions 20, and nothing below 13.5
+  (about 9px). Glyphs are thickened with a same-colour stroke painted under the
+  fill (Optima has no medium weight; labels take a lighter stroke), so text is
+  coloured with `color`, never `fill`. If a label will not fit at that size,
+  cut the label rather than shrink it. Captions are at most two lines of about 170 units.
+- **Shapes.** Ledger rows with hairline rules rather than boxes; dashed means
+  blank or unknown; a filled dot is a model, a ring is the human baseline;
+  `2`-unit corners.
+- **Motion.** Arrivals fade and rise 4 units on `power3.out` (the emphasized
+  ease) in `0.45s`; exits fade in `0.3s`; lines draw rather than pop. Each beat
+  holds long enough to read, and the loop ends back on its first frame.
+- **The first frame is the poster.** It is server-rendered and complete
+  without script (`?xp-t=0` on the dev-only `/dev/explainers` route shows it).
+  Elements for later beats are in the markup with `xp-later` and revealed by
+  the timeline.
+- **Charts.** Bars grow from the axis upward and their numbers appear only
+  once the bar has arrived. Bars sit in a group clipped just above the axis and
+  the axis line is drawn after them, so no bar is ever painted over its axis
+  (`rise`, `resize`, `barBox` in `motion.ts`).
+- **Playback.** Live by default: the loop plays while on screen and pauses
+  offscreen or in a background tab. Pointing at or focusing one card plays that
+  card and sends every other card back to its first frame, slightly darkened,
+  where it waits until attention moves on. Cards carry no play/pause control
+  by direction; Reduce Motion stops autoplay entirely. In the lightbox the numbered
+  step chips are the only control, on one line: choosing a step holds its
+  settled frame, and choosing it again plays on. On a narrow stage only the
+  current chip keeps its words. Under Reduce Motion nothing autoplays and GSAP
+  is not loaded for cards; the chips still jump between settled frames.
+- **Checked, not eyeballed.** On the dev route, every plate can be driven
+  through each step's settled frame (`window.__xp`); run a layout pass over
+  them for text that overflows the plate, falls under 13 units, or collides
+  with other text or marks.
+- **Truth.** Examples and numbers come from the paper; digitized values are
+  noted as such in the component header.
+
+## Implementation conventions
+
+### Ownership
+
+- `tailwind.config.js`: primitive palette, breakpoints, and approved utility
+  scale.
+- `src/app.css`: font stacks, global semantic light/dark variables, atomic
+  typography roles, shared component recipes, motion, layer, radius, and
+  shadow tokens.
+- Svelte components: structural layout and documented variants.
+- Routes: composition and content-specific layout only.
+- This guide: human-readable contract and exception register.
+
+### Naming
+
+- Primitive: `cream-100`, `space-4`, `motion-fast`.
+- Semantic: `text-primary`, `surface-raised`, `space-section`.
+- Component: `type-page-title`, `control-compact`, `page-shell-wide`.
+- State: `is-open`, `is-selected`, `is-error`, or Svelte class directive with
+  the component name.
+
+### Do
+
+- Use one atomic type recipe.
+- Use the documented semantic color mapping in component CSS.
+- Use the spacing scale for all ordinary gaps and insets.
+- Put responsive behavior in the component that owns the relationship.
+- Comment optical exceptions with the reason.
+- Test both themes and all interaction states.
+
+### Do not
+
+- Combine `type-page-title` with a separate `text-*` or `leading-*` utility.
+- Use a raw palette color when a semantic token exists.
+- add a new spacing value because the closest approved value “looks slightly
+  off” without testing and documenting it;
+- use `transition-all` when only color or transform changes;
+- use z-index values outside the layer scale;
+- use fixed height on wrapping text;
+- normalize expressive art into ordinary UI components.
+
+## Component acceptance checklist
+
+Before a new or changed component is complete:
+
+- [ ] Uses a named typography role.
+- [ ] Uses semantic colors in both themes.
+- [ ] Uses approved spacing, radius, shadow, and layer values.
+- [ ] Has default, hover, focus-visible, active, disabled, loading, empty, and
+      error states where relevant.
+- [ ] Ordinary text contrast is at least `4.5:1`.
+- [ ] Focus and essential graphics contrast is at least `3:1`.
+- [ ] Pointer targets meet the `24px` minimum or spacing exception.
+- [ ] Works by keyboard and returns focus correctly after overlays.
+- [ ] Survives WCAG text-spacing overrides.
+- [ ] Works at 320px width and 200% zoom.
+- [ ] Honors reduced motion.
+- [ ] Has useful accessible names and image alternatives.
+- [ ] Uses real content during review.
+
+## Visual QA matrix
+
+Review primary routes at:
+
+- `375px`: small phone;
+- `480px`: `sm` gutter and wrapping threshold;
+- `768px`: primary desktop-layout transition;
+- `1024px`: large-screen gutter and layout;
+- `1280px`: wide page and About sidenotes;
+- `1536px`: maximum whitespace and container behavior.
+
+For each width, check:
+
+- light and dark themes;
+- default and keyboard-focus states;
+- open menus, disclosures, drawers, and lightboxes;
+- long titles, long tags, and empty states;
+- reduced motion;
+- 200% zoom;
+- text-spacing override;
+- at least one non-Apple font fallback environment.
+
+## Governance
+
+When adding a visual value:
+
+1. Reuse an existing semantic token if it expresses the same purpose.
+2. If the purpose is new, map it to an existing primitive.
+3. Add a new primitive only when no existing value works across all relevant
+   components.
+4. Document the role, both theme mappings, accessibility result, and intended
+   consumers.
+5. Record expressive exceptions in this guide.
+
+Review the guide whenever a new route, component family, theme, or font is
+introduced. Remove unused tokens rather than keeping speculative styles.
+
+## Reference standards
+
+- [MIT Brand Guide: Typography](https://brand.mit.edu/typography)
+- [USWDS Typography](https://designsystem.digital.gov/components/typography/)
+- [USWDS Spacing Units](https://designsystem.digital.gov/design-tokens/spacing-units/)
+- [GOV.UK Layout](https://design-system.service.gov.uk/styles/layout/)
+- [GOV.UK Spacing](https://design-system.service.gov.uk/styles/spacing/)
+- [WCAG 2.2 Contrast Minimum](https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum)
+- [WCAG 2.2 Text Spacing](https://www.w3.org/WAI/WCAG22/Understanding/text-spacing)
+- [WCAG 2.2 Target Size](https://www.w3.org/WAI/WCAG22/Understanding/target-size-minimum)
+- [IBM Carbon Color](https://carbondesignsystem.com/elements/color/overview/)

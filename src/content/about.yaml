@@ -1,0 +1,59 @@
+# About page content - edit this file to update the about page text
+#
+# Footnotes: put a marker like [^1] in any text below. On wide screens the
+# note floats in the right margin beside its marker; on narrow screens the
+# notes are listed at the bottom. A professional paragraph can also take a
+# `footnote: <id>` field to append a marker at its end.
+
+footnotes:
+  - id: 1
+    content: "A footnote with more detail about your current lab or project."
+  - id: 2
+    content: "A footnote about earlier work."
+  - id: 3
+    content: "A footnote about one of your interests."
+
+# Professional section - your academic/research bio
+professional:
+  intro: "I'm **Your Name**, a researcher studying [your field](https://example.com) at [Your University](https://www.example.edu). I am advised by Professors [Advisor One](https://example.com) and [Advisor Two](https://example.com)."
+
+  paragraphs:
+    - text: "I am a member of the [Example Lab](https://example.com), where I work on your current research.[^1]"
+
+    - text: "Before that, I worked with Professor [Former Mentor](https://example.com) on an earlier project."
+      footnote: 2
+
+# Personal section
+personal:
+  descriptions:
+    - "A paragraph about who you are outside of research."
+    - "A paragraph about where people might find you day to day."
+  interests: "reading, hiking[^3], photography, and anything else"
+  # Leave empty ([]) to hide the line.
+  blogs:
+    - name: "A blog you like"
+      url: "https://example.com"
+
+# Location section
+location:
+  text: "Where you grew up and where you live now. If you are ever around and want to talk, feel free to reach out!"
+
+# Website section
+website:
+  inspiration: "This site's skeleton comes from Atrey Desai's personal website."
+  inspirationList:
+    - name: "Atrey Desai"
+      url: "https://atreydesai.com/"
+      description: "For the design system, layout, and animated paper figures."
+  builtWith: "Uses SvelteKit, Tailwind CSS, and GSAP, and is deployed on Vercel."
+
+# Friends: personal sites of friends. Leave empty ([]) to hide the section.
+friends:
+  - name: "A friend's site"
+    url: "https://example.com"
+
+# Things you're thinking about
+thoughts:
+  - "a question on your mind"
+  - "something you're curious about"
+  - "a food you've been craving"

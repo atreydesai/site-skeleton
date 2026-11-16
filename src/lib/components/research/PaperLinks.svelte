@@ -1,0 +1,155 @@
+<script lang="ts">
+    import { Binary, PenLine, ChevronsUpDown, ChevronsDownUp, CircleArrowOutUpRight, MessageCircle, FileText } from "@jis3r/icons";
+
+    export let paper: {
+        id: string;
+        arxiv: string | null;
+        pdf: string | null;
+        code: string | null;
+        demo: string | null;
+        twitter: string | null;
+        blog: string | null;
+        tldr: string | null;
+    };
+
+    export let tldrOpen = false;
+
+    // Per-link hover states for icon animation triggering
+    let hoveredLink: string | null = null;
+
+    $: hasLinks = Boolean(
+        paper.arxiv ||
+            paper.pdf ||
+            paper.code ||
+            paper.demo ||
+            paper.twitter ||
+            paper.blog,
+    );
+</script>
+
+{#if hasLinks || paper.tldr}
+    <div
+        class="mt-3 flex flex-wrap items-center gap-x-3 gap-y-2 font-ui text-xs"
+    >
+        {#if paper.tldr}
+            <button
+                type="button"
+                on:click={() => (tldrOpen = !tldrOpen)}
+                on:mouseenter={() => (hoveredLink = 'tldr')}
+                on:mouseleave={() => (hoveredLink = null)}
+                class="link-subtle inline-flex items-center gap-1.5 font-[inherit]"
+                aria-expanded={tldrOpen}
+                aria-label={tldrOpen ? "Hide tldr" : "Show tldr"}
+                title={tldrOpen ? "Hide tldr" : "Show tldr"}
+            >
+                {#if tldrOpen}
+                    <ChevronsDownUp size={14} animate={hoveredLink === 'tldr'} />
+                {:else}
+                    <ChevronsUpDown size={14} animate={hoveredLink === 'tldr'} />
+                {/if}
+                tldr
+            </button>
+        {/if}
+        {#if paper.arxiv}
+            <a
+                href={paper.arxiv}
+                data-track="paper_link"
+                data-track-paper={paper.id}
+                data-track-kind="arxiv"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="link-subtle inline-flex items-center gap-1.5"
+                on:mouseenter={() => (hoveredLink = 'arxiv')}
+                on:mouseleave={() => (hoveredLink = null)}
+            >
+                <CircleArrowOutUpRight size={12} animate={hoveredLink === 'arxiv'} />
+                arxiv
+            </a>
+        {/if}
+
+        {#if paper.pdf}
+            <a
+                href={paper.pdf}
+                data-track="paper_link"
+                data-track-paper={paper.id}
+                data-track-kind="pdf"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="link-subtle inline-flex items-center gap-1.5"
+                on:mouseenter={() => (hoveredLink = 'pdf')}
+                on:mouseleave={() => (hoveredLink = null)}
+            >
+                <FileText size={12} animate={hoveredLink === 'pdf'} />
+                pdf
+            </a>
+        {/if}
+
+        {#if paper.code}
+            <a
+                href={paper.code}
+                data-track="paper_link"
+                data-track-paper={paper.id}
+                data-track-kind="code"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="link-subtle inline-flex items-center gap-1.5"
+                on:mouseenter={() => (hoveredLink = 'code')}
+                on:mouseleave={() => (hoveredLink = null)}
+            >
+                <Binary size={14} animate={hoveredLink === 'code'} />
+                code
+            </a>
+        {/if}
+
+        {#if paper.demo}
+            <a
+                href={paper.demo}
+                data-track="paper_link"
+                data-track-paper={paper.id}
+                data-track-kind="demo"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="link-subtle inline-flex items-center gap-1.5"
+                on:mouseenter={() => (hoveredLink = 'demo')}
+                on:mouseleave={() => (hoveredLink = null)}
+            >
+                <CircleArrowOutUpRight size={14} animate={hoveredLink === 'demo'} />
+                demo
+            </a>
+        {/if}
+
+        {#if paper.twitter}
+            <a
+                href={paper.twitter}
+                data-track="paper_link"
+                data-track-paper={paper.id}
+                data-track-kind="twitter"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="link-subtle inline-flex items-center gap-1.5"
+                on:mouseenter={() => (hoveredLink = 'twitter')}
+                on:mouseleave={() => (hoveredLink = null)}
+            >
+                <MessageCircle size={14} animate={hoveredLink === 'twitter'} />
+                twitter
+            </a>
+        {/if}
+
+        {#if paper.blog}
+            <a
+                href={paper.blog}
+                data-track="paper_link"
+                data-track-paper={paper.id}
+                data-track-kind="blog"
+                target="_blank"
+                rel="noopener noreferrer"
+                class="link-subtle inline-flex items-center gap-1.5"
+                on:mouseenter={() => (hoveredLink = 'blog')}
+                on:mouseleave={() => (hoveredLink = null)}
+            >
+                <PenLine size={14} animate={hoveredLink === 'blog'} />
+                blog
+            </a>
+        {/if}
+    </div>
+{/if}

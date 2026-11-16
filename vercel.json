@@ -1,0 +1,22 @@
+{
+  "redirects": [
+    { "source": "/resume", "destination": "/cv/", "permanent": true },
+    { "source": "/resume/", "destination": "/cv/", "permanent": true },
+    { "source": "/resume.pdf", "destination": "/cv.pdf", "permanent": true }
+  ],
+  "headers": [
+    {
+      "source": "/llms.txt",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "text/plain; charset=utf-8"
+        },
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=300, s-maxage=3600"
+        }
+      ]
+    }
+  ]
+}

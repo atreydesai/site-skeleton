@@ -1,0 +1,94 @@
+# Homepage content - edit this file to update the main page text
+# Each paragraph in 'intro' will be rendered as a separate <p> tag
+# You can use markdown links: [text](url) and emphasis: **bold** *italic*
+
+intro:
+  - "I am a researcher studying your field at [Your University](https://www.example.edu)."
+  - "I am advised by Professors [Advisor One](https://example.com) and [Advisor Two](https://example.com)."
+
+banner:
+  # The {curly} phrase becomes the click-to-expand toggle for the projects list.
+  # Delete the whole `banner:` block to hide the banner.
+  lead: "**A one-line pinned announcement goes here**, and I'm happy to chat about my {ongoing projects}"
+  # The day the lead first went up, shown as the pinned row's date.
+  leadDate: "2026-01-15"
+  projects:
+    - "A short description of an ongoing project ([link](https://example.com))."
+    - "Another ongoing project."
+  # The dated log under the pinned sentence, newest shown first (order here
+  # doesn't matter; it's sorted by date). The `lead` above is its pinned first
+  # row. About three updates show; the rest scroll. Leave it empty and only
+  # the pinned row remains.
+  #   date: "YYYY-MM-DD", quoted. Only a real day: if all you know is the
+  #         month, leave the entry out.
+  #   kind: the drawn key that leads the row. Missing or unknown reads as note.
+  #     paper     - something written: a paper, preprint, the CV
+  #                 (no drawn key, just the date)
+  #     read      - something read
+  #     talk      - a talk, poster, visit, or conversation
+  #     milestone - an acceptance, an award, an application submitted
+  #     note      - everything else
+  #   text: one sentence, with **bold** and [links](url), written as an
+  #         announcement: "New paper on arXiv: …", "Accepted to …".
+  #         Links to this site (/research/#id, /cv/) stay in the same tab;
+  #         others open a new one.
+  updates:
+    - date: "2026-03-01"
+      kind: milestone
+      text: "[Example Paper One](/research/#example-paper-one) accepted to Example Conference 2026."
+    - date: "2026-02-10"
+      kind: talk
+      text: "Gave a talk at [Example Workshop](https://example.com) on your research topic."
+    - date: "2026-01-20"
+      kind: paper
+      text: "New paper on arXiv: [Example Paper Two](/research/#example-paper-two)."
+    - date: "2025-12-05"
+      kind: read
+      text: "Read something worth sharing: [a link](https://example.com)."
+    - date: "2025-11-01"
+      kind: note
+      text: "Anything else worth a line."
+
+researchInterests:
+  # Each item's `quadrant` draws a 2×2 glyph beside its title, filling the
+  # listed cells (see QuadrantCell in src/lib/content.ts); it and
+  # `quadrantLabel` appear only when details are expanded. Both are optional.
+  # A citation with `url: null` shows a "let me cook :)" tooltip instead of a
+  # link, for work in progress (IP = in progress).
+  intro: "A one- or two-sentence framing of your research agenda. I study:"
+  items:
+    - title: "Theme one"
+      quadrant: ["se", "ce"]
+      quadrantLabel: "uncertain"
+      summary: "A one-line summary of the first theme."
+      question: "The full research question behind the first theme, written out as a sentence or two (with an aside in parentheses)."
+      citations:
+        - label: "one"
+          url: "/research/#example-paper-one"
+        - label: "IP1"
+          url: null
+    - title: "Theme two"
+      quadrant: ["cc", "ce"]
+      quadrantLabel: "adapting"
+      summary: "A one-line summary of the second theme."
+      question: "The full research question behind the second theme."
+      citations:
+        - label: "two"
+          url: "/research/#example-paper-two"
+    - title: "Theme three"
+      quadrant: ["ce"]
+      quadrantLabel: "both"
+      summary: "A one-line summary of the third theme."
+      question: "The full research question behind the third theme."
+      citations:
+        - label: "three"
+          url: "/research/#example-paper-three"
+        - label: "IP2"
+          url: null
+
+social:
+  github: https://github.com/your-username
+  twitter: https://x.com/your-username
+  scholar: https://scholar.google.com/citations?user=YOUR_ID
+  email: you@example.edu
+  feedback: https://example.com/anonymous-feedback

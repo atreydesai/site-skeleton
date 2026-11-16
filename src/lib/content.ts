@@ -1,0 +1,139 @@
+import { validateFrontmatter } from '$lib/frontmatter';
+
+// Content loader utilities for the markdown papers and YAML files in
+// src/content/.
+
+// Type definitions
+export interface Paper {
+    id: string;
+    title: string;
+    authors: string[];
+    year: number;
+    venue: string | null;
+    arxiv: string | null;
+    pdf: string | null;
+    code: string | null;
+    demo: string | null;
+    twitter: string | null;
+    blog: string | null;
+    tags: string[];
+    tldr: string | null;
+    awards: string[];
+    preprint: boolean;
+    featured: boolean;
+    highlight: boolean;  // Special emphasis styling
+    priority: number;    // Lower number = higher priority for featured ordering
+    imageDescription: string | null;
+    image?: string | null;
+    classProject?: boolean;  // Distinguishes class projects from regular papers
+}
+
+export interface Talk {
+    id: string;
+    title: string;
+    venue: string;
+    date: string;
+    type: string;
+    slides?: string | null;
+    video?: string | null;
+}
+
+export interface ResearchInterestCitation {
+    label: string;
+    url: string | null;
+}
+
+// A cell of the homepage's 2×2 of research settings. First letter is the row:
+// s(tatic) or c(o-evolving, i.e. adapting). Second is the column: c(lear) or
+// e (uncertain, expensive to verify). "ce" is uncertain and adapting.
+export type QuadrantCell = "sc" | "se" | "cc" | "ce";
+
+export interface ResearchInterestItem {
+    title: string;
+    summary: string;
+    question: string;
+    quadrant?: QuadrantCell[];
+    quadrantLabel?: string;
+    citations?: ResearchInterestCitation[];
+}
+
+// One dated line in the homepage banner's updates log. `kind` picks the drawn
+// key that leads the row (see $lib/marks); anything unrecognised reads as a
+// note.
+export type BannerUpdateKind = 'paper' | 'read' | 'talk' | 'milestone' | 'note';
+
+export interface BannerUpdate {
+    /** "YYYY-MM-DD". */
+    date: string;
+    kind?: BannerUpdateKind;
+    /** Inline markdown: **bold** and [links](url). */
+    text: string;
+}
+
+export interface HomepageData {
+    intro: string[];
+    banner?: {
+        lead: string;
+        /** "YYYY-MM-DD": when the pinned lead went up; shown as its date. */
+        leadDate?: string;
+        projects: string[];
+        updates?: BannerUpdate[];
+    };
+    researchInterests: {
+        intro: string;
+        items: ResearchInterestItem[];
+    };
+    social: {
+        github: string;
+        twitter: string;
+        scholar: string;
+        email: string;
+        feedback: string;
+    };
+}
+
+export interface AboutData {
+    footnotes: Array<{ id: number; content: string }>;
+    professional: {
+        intro: string;
+        paragraphs: Array<{ text: string; footnote?: number }>;
+    };
+    personal: {
+        descriptions: string[];
+        interests: string;
+        blogs: Array<{ name: string; url: string }>;
+    };
+    location: {
+        text: string;
+    };
+    website: {
+        inspiration: string;
+        inspirationList: Array<{ name: string; url: string; description: string }>;
+        builtWith: string;
+    };
+    friends: Array<{ name: string; url: string }>;
+    thoughts: string[];
+}
+
+// Import all paper markdown files
+const paperModules = import.meta.glob<Paper>('/src/content/papers/*.md', { eager: true });
+export const papers: Paper[] = Object.entries(paperModules)
+    .map(([path, mod]) => {
+        validateFrontmatter(path, mod, {
+            id: 'string', title: 'string', authors: 'array', year: 'number', venue: 'string|null',
+        });
+        return mod as unknown as Paper;
+    })
+    .sort((a, b) => {
+        if (a.year !== b.year) return b.year - a.year;
+        return (a.priority ?? 99) - (b.priority ?? 99);  // Secondary sort by priority (lower = higher priority)
+    });
+
+// Import YAML files
+import talksYaml from '../content/talks.yaml';
+import aboutYaml from '../content/about.yaml';
+import homepageYaml from '../content/homepage.yaml';
+
+export const talks: Talk[] = talksYaml as unknown as Talk[];
+export const aboutData: AboutData = aboutYaml as unknown as AboutData;
+export const homepageData: HomepageData = homepageYaml as unknown as HomepageData;

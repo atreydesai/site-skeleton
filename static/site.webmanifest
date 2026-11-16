@@ -1,0 +1,13 @@
+{
+  "name": "Your Name",
+  "short_name": "Your Name",
+  "description": "Personal site of Your Name: research, publications, and CV.",
+  "start_url": "/",
+  "display": "browser",
+  "background_color": "#FDF8F3",
+  "theme_color": "#FDF8F3",
+  "icons": [
+    { "src": "/favicon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/favicon-256.png", "sizes": "256x256", "type": "image/png" }
+  ]
+}

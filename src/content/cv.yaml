@@ -1,0 +1,74 @@
+# CV page content - edit this file to update /cv
+# Strings ending in _html (and the experience bullets and publications/mentorship
+# items) contain raw HTML and are rendered with {@html} in
+# src/routes/cv/+page.svelte. An experience entry's organization, role, and
+# advisors each take either a plain-text field or its _html variant (for links).
+# Classes for HTML strings (styled in the page, never bold): cv-title for item
+# titles, cv-label for a role or label before prose, cv-date for inline dates.
+
+education:
+  school: Your University
+  degree: Your Degree in Your Field · Expected Month Year
+  advisors_html: 'Advisors: <a href="https://example.com" class="link">Advisor One</a> & <a href="https://example.com" class="link">Advisor Two</a>'
+  coursework_html: '<span class="cv-label">Coursework:</span> Course One, Course Two (G), Course Three* (* in progress)'
+
+experience:
+  - organization: Your University
+    dates: Month Year – present
+    role_html: 'Researcher, <a href="https://example.com" class="link">Example Lab</a>'
+    advisors_html: 'Advisors: <a href="https://example.com" class="link">Advisor One</a> & <a href="https://example.com" class="link">Advisor Two</a>'
+    bullets:
+      - One line about a research thread
+      - Another line about a research thread
+
+  - organization_html: '<a href="https://example.com" class="link">Example Company</a>'
+    dates: Month Year – Month Year
+    role: Research Intern (City, State)
+    bullets:
+      - One line about what you did
+
+publications:
+  groups:
+    - heading: Under Submission
+      items:
+        - '<span class="cv-title">Example Paper Three: A Preprint Title</span><br />Under review at Example Venue<br /><span class="text-ink-900 dark:text-cream-100">Your Name</span>, Coauthor One & Coauthor Two.'
+    - heading: Peer-reviewed Proceedings
+      items:
+        - '<a href="https://example.com" class="link"><span class="cv-title">Example Paper One: A Descriptive Title for Your Main Paper</span></a>.<br />Example Conference 2026<br /><span class="text-ink-900 dark:text-cream-100">Your Name</span>, Coauthor One & Advisor One.'
+        - '<a href="https://example.com" class="link"><span class="cv-title">Example Paper Two: Another Paper Title</span></a>.<br />Example Conference 2026 · <em>Oral</em><br />Coauthor One*, <span class="text-ink-900 dark:text-cream-100">Your Name</span>* & Advisor Two.'
+  note_html: '* equal contribution. See the full list on my <a href="/research/" class="link">research page</a> or <a href="https://scholar.google.com/citations?user=YOUR_ID" class="link">Google Scholar</a>.'
+
+awards:
+  - name: Example Fellowship
+    amount: "$1,000"
+    year: "2026"
+  - name: Example Award
+    year: "2025"
+
+talks:
+  - title: An Example Talk Title
+    venues:
+      - name: Example Workshop
+        date: Feb 2026
+      - name: Your University Reading Group
+        date: Jan 2026
+
+responsibilities:
+  positions:
+    - role_html: '<span class="cv-label">Reviewer</span>, Example Conference (2026)'
+      dates: 2025 – present
+    - role_html: '<span class="cv-label">Organizer</span>, <a href="https://example.com" class="link">Example Workshop</a>'
+      dates: 2026
+      note: An optional one-line note about the role.
+  mentorship:
+    title: Mentoring
+    items:
+      - '<span class="cv-label">Example Program:</span> Student One, Student Two <span class="cv-date text-ink-500 dark:text-cream-500">(2026)</span>'
+
+skills:
+  - label: Programming
+    items: Python, JavaScript.
+  - label: Tools
+    items: Git, Docker.
+  - label: Languages
+    items: English (Native).

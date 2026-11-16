@@ -1,0 +1,907 @@
+<script lang="ts">
+  import Seo from "$lib/components/Seo.svelte";
+  import ResearchCard from "$lib/components/ResearchCard.svelte";
+  import { papers, homepageData } from "$lib/content";
+  import { parseInline } from "$lib/utils/text";
+  import ScrollReveal from "$lib/components/ScrollReveal.svelte";
+  import Mark from "$lib/components/Mark.svelte";
+  import QuadrantGlyph from "$lib/components/QuadrantGlyph.svelte";
+  import { onDestroy } from "svelte";
+  import { track } from "$lib/analytics";
+  import BannerUpdates from "$lib/components/home/BannerUpdates.svelte";
+  import { SITE } from "$lib/site";
+
+  const parseBanner = (text: string) => parseInline(text);
+
+  let projectsOpen = false;
+
+  // banner.lead embeds the projects toggle inline as a "{label}" token,
+  // e.g. "…about my {ongoing projects}": split it into text around the toggle.
+  const bannerLeadMatch = (homepageData.banner?.lead ?? "").match(/^(.*)\{([^}]+)\}(.*)$/);
+  const bannerLead = bannerLeadMatch
+    ? { pre: bannerLeadMatch[1], label: bannerLeadMatch[2], post: bannerLeadMatch[3] }
+    : { pre: homepageData.banner?.lead ?? "", label: "ongoing projects", post: "" };
+
+  const featuredPapers = papers
+    .filter((p) => p.featured)
+    .sort((a, b) => (a.priority ?? 99) - (b.priority ?? 99))
+    .slice(0, 3);
+
+  const parseLinks = (text: string) => parseInline(text, { italic: true });
+  const parseInterestText = (text: string) =>
+    parseInline(
+      text.replace(
+        /\(([^)]+)\)/g,
+        '<span class="text-[0.94em] italic">($1)</span>',
+      ),
+      { italic: true },
+    );
+
+  // Hand-drawn pen loops for the interest markers: one per row, each a
+  // different pass so no two circles match and none closes cleanly. Drawn as
+  // paths rather than a border because a border cannot overshoot itself.
+  const interestLoops = [
+    "M4.5 9.0C6.4 8.0 11.6 3.9 15.8 3.2C20.0 2.4 25.4 3.3 29.5 4.4C33.6 5.4 39.0 7.4 40.6 9.6C42.1 11.9 40.2 15.3 38.6 17.8C37.0 20.3 34.5 23.6 31.0 24.6C27.4 25.6 21.2 25.0 17.3 24.0C13.5 23.1 10.5 21.0 7.9 19.0C5.3 17.0 1.1 14.2 1.9 12.1C2.8 10.1 11.1 7.5 12.9 6.6",
+    "M5.5 10.4C7.2 9.5 11.6 6.1 15.6 5.1C19.5 4.2 25.7 3.8 29.3 4.5C33.0 5.1 35.6 7.0 37.4 9.2C39.1 11.4 40.8 15.4 39.8 17.9C38.9 20.4 35.4 23.3 31.7 24.1C27.9 24.9 21.7 23.5 17.4 22.6C13.0 21.7 8.0 20.6 5.7 18.6C3.5 16.6 2.8 12.5 3.9 10.6C5.0 8.6 10.9 7.4 12.3 6.8",
+    "M6.8 10.0C8.1 9.2 11.1 6.2 14.6 5.1C18.1 4.1 24.1 3.0 27.9 3.7C31.8 4.3 35.6 7.0 37.6 9.3C39.5 11.5 41.2 14.9 39.8 17.0C38.4 19.1 33.1 20.5 29.3 21.8C25.5 23.0 20.8 24.7 16.9 24.3C13.0 23.9 7.6 21.3 5.9 19.3C4.1 17.3 5.3 15.0 6.3 12.5C7.2 10.0 10.2 7.9 11.9 7.2",
+  ];
+
+  const interestRows = homepageData.researchInterests.items.map((item) => ({
+    ...item,
+    quadrant: item.quadrant ?? [],
+    citations: item.citations ?? [],
+  }));
+
+  let researchExpanded = false;
+
+  function toggleResearchDetails() {
+    researchExpanded = !researchExpanded;
+  }
+
+  // Anywhere in a row toggles it: the marker, the gaps, the padding. The
+  // row's own buttons already toggle and its citations do their own thing,
+  // so clicks on those are left alone. Keyboard users reach the same toggle
+  // through the title button.
+  //
+  // A drag that selects text in the row also ends in a click on it, and that
+  // shouldn't toggle. It's told apart by how far the press travelled, not by
+  // whether the page has a selection: a selection can linger anywhere on the
+  // page (Safari keeps one while you click the non-selectable marker), so
+  // checking for one would swallow clicks and leave a row stuck open.
+  let pressX = 0;
+  let pressY = 0;
+
+  function handleInterestRowPress(e: PointerEvent) {
+    pressX = e.clientX;
+    pressY = e.clientY;
+  }
+
+  function handleInterestRowClick(e: MouseEvent) {
+    if ((e.target as Element).closest("a, button")) return;
+    // The second and third clicks of a double/triple-click are word and
+    // paragraph selection, not toggles.
+    if (e.detail > 1) return;
+    if (Math.hypot(e.clientX - pressX, e.clientY - pressY) > 4) return;
+    toggleResearchDetails();
+  }
+
+  // Which copy button was last pressed, so only its tooltip shows, and
+  // whether the copy worked: when it didn't, the tooltip shows the address
+  // itself so the press still gives a sighted reader something.
+  let emailCopied: string | null = null;
+  let copyFailed = false;
+  let copyTimeout: ReturnType<typeof setTimeout>;
+  // Announced politely: the "copied!" tooltip is a purely visual confirmation,
+  // so without this the button appears to do nothing to a screen reader.
+  let copyAnnouncement = "";
+
+  async function copyEmail(from = "home_links") {
+    // writeText rejects in insecure contexts and when permission is denied.
+    // Claiming success there would be a lie, so report what actually happened.
+    try {
+      await navigator.clipboard.writeText(homepageData.social.email);
+      emailCopied = from;
+      copyFailed = false;
+      track("email_copy", { from });
+      copyAnnouncement = `Copied ${homepageData.social.email} to the clipboard.`;
+    } catch {
+      emailCopied = from;
+      copyFailed = true;
+      track("email_reveal", { from });
+      copyAnnouncement = `Couldn't copy automatically. My email is ${homepageData.social.email}.`;
+    }
+    clearTimeout(copyTimeout);
+    // An address shown in place of a copy stays long enough to select.
+    copyTimeout = setTimeout(() => {
+      emailCopied = null;
+      copyAnnouncement = "";
+    }, copyFailed ? 10000 : 4000);
+  }
+
+  let cookKey: string | null = null;
+  let cookTimeout: ReturnType<typeof setTimeout>;
+
+  function showCook(key: string) {
+    cookKey = key;
+    clearTimeout(cookTimeout);
+    cookTimeout = setTimeout(() => (cookKey = null), 1000);
+  }
+
+  onDestroy(() => {
+    clearTimeout(copyTimeout);
+    clearTimeout(cookTimeout);
+  });
+
+  const socialLinks = [
+    { name: "Google Scholar", href: homepageData.social.scholar },
+    { name: "GitHub", href: homepageData.social.github },
+    { name: "Twitter", href: homepageData.social.twitter },
+    { name: "Anon Feedback", href: homepageData.social.feedback },
+  ];
+</script>
+
+<Seo
+  title={SITE.name}
+  description={SITE.description}
+  url="{SITE.url}/"
+  pageType="ProfilePage"
+  about={true}
+/>
+
+<div class="page-shell page-shell-standard">
+  <section class="section-gap">
+    <!-- Mobile: intro and links above the image. Desktop: text and image side by side. -->
+    <div
+      class="flex flex-col gap-8 md:grid md:grid-cols-[1fr_minmax(0,250px)]"
+    >
+      <div class="md:col-start-1 md:flex md:flex-col">
+        <h1 class="type-page-title mb-4 text-ink-900 dark:text-cream-100">
+          hi, i'm {SITE.wordmark}
+        </h1>
+
+        <!-- No hyphenation in the intro on wide screens: it reads better with
+             whole words. A phone column is too narrow to justify whole words
+             without wide rivers, so hyphenation stays on there. -->
+        <div class="type-deck flow-prose md:hyphens-none text-ink-700 dark:text-cream-300">
+          {#each homepageData.intro as paragraph}
+            <p>
+              {@html parseLinks(paragraph)}
+            </p>
+          {/each}
+        </div>
+
+        <div class="mt-16 md:mt-auto md:pt-6 flex flex-wrap items-center gap-x-4 gap-y-1 font-ui text-sm">
+          {#each socialLinks as link}
+            <a
+              href={link.href}
+              target="_blank"
+              rel="noopener noreferrer"
+              title={link.name}
+              data-track="social_click"
+              data-track-network={link.name}
+              class="link"
+            >
+              {link.name}
+            </a>
+          {/each}
+
+          <div class="relative inline-flex">
+            <button
+              type="button"
+              on:click={() => copyEmail()}
+              title="Copy email"
+              class="link font-[inherit] text-[length:inherit] cursor-pointer"
+            >
+              Email
+            </button>
+            {#if emailCopied === "home_links"}
+              <span class="copied-tooltip" class:is-address={copyFailed} aria-hidden="true">
+                <span class="copied-triangle"></span>
+                {copyFailed ? homepageData.social.email : "copied!"}
+              </span>
+            {/if}
+          </div>
+        </div>
+
+        <p class="sr-only" aria-live="polite" aria-atomic="true">
+          {copyAnnouncement}
+        </p>
+      </div>
+
+      <div class="md:col-start-2">
+        <div class="w-full max-w-[250px] mx-auto md:mx-0">
+          <div class="aspect-square w-full overflow-hidden">
+            <img
+              src="/images/profile.webp"
+              alt={SITE.name}
+              width="250"
+              height="250"
+              fetchpriority="high"
+              class="h-full w-full object-cover"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  {#if homepageData.banner}
+    <ScrollReveal delay={40}>
+      <section class="section-gap">
+        <!-- Filter regions are widened so the displaced edges never clip
+             against the default 110% filter box on a short banner. -->
+        <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+          <filter id="banner-rough" x="-15%" y="-30%" width="130%" height="160%">
+            <feTurbulence type="fractalNoise" baseFrequency="0.028" numOctaves="3" seed="3" />
+            <feDisplacementMap in="SourceGraphic" scale="6" />
+          </filter>
+          <filter id="banner-rough-strong" x="-15%" y="-30%" width="130%" height="160%">
+            <feTurbulence type="fractalNoise" baseFrequency="0.034" numOctaves="3" seed="7" />
+            <feDisplacementMap in="SourceGraphic" scale="9" />
+          </filter>
+        </svg>
+        <div class="banner-riso-sketch-wrap relative">
+          <div class="banner-riso-back" aria-hidden="true"></div>
+          <div
+            class="banner-box banner-riso-front relative select-text p-5 md:px-6 text-ink-800 dark:text-cream-100"
+          >
+            <!-- The pinned sentence is the log's first row, dated the day it
+                 went up and keyed with the pin (BannerUpdates draws the pin
+                 and says "Pinned:" to screen readers). The "{label}" token in
+                 banner.lead becomes the click-to-expand projects toggle,
+                 inline in the sentence. A second sentence carries the three
+                 things a recruiting reader reaches for. -->
+            <BannerUpdates
+              updates={homepageData.banner.updates ?? []}
+              pinnedDate={homepageData.banner.leadDate}
+            >
+            <svelte:fragment slot="pinned">
+            <p>
+              {@html parseBanner(bannerLead.pre)}<button
+                type="button"
+                class="banner-toggle link font-[inherit] text-[length:inherit] cursor-pointer select-none"
+                aria-expanded={projectsOpen}
+                aria-controls="banner-projects-list"
+                data-track="banner_projects_toggle"
+                on:click={() => (projectsOpen = !projectsOpen)}
+              ><span class="banner-toggle-label">{bannerLead.label}</span><Mark
+                  kind="caret"
+                /></button>{@html parseBanner(bannerLead.post)}.
+              <span class="relative"><button
+                  type="button"
+                  class="link font-[inherit] text-[length:inherit] cursor-pointer"
+                  on:click={() => copyEmail("banner")}
+                >Copy my email</button>{#if emailCopied === "banner"}<span class="copied-tooltip" class:is-address={copyFailed} aria-hidden="true"
+                    ><span class="copied-triangle"></span>{copyFailed ? homepageData.social.email : "copied!"}</span
+                  >{/if}</span>,
+              <a href="/cv/" class="link" data-track="banner_cv">read my CV</a>, or
+              <a href="/research/" class="link" data-track="banner_research">see my research</a>.
+            </p>
+            <div
+              id="banner-projects-list"
+              class="banner-projects-shell"
+              class:banner-projects-shell-open={projectsOpen}
+              aria-hidden={!projectsOpen}
+              inert={!projectsOpen}
+            >
+              <div class="banner-projects-inner">
+                <ol class="mt-2.5 space-y-1.5">
+                  {#each homepageData.banner.projects as project, i}
+                    <li
+                      class="banner-project-item"
+                      style="--project-delay: {i * 40}ms"
+                    >
+                      {@html parseBanner(project)}
+                    </li>
+                  {/each}
+                </ol>
+              </div>
+            </div>
+            </svelte:fragment>
+            </BannerUpdates>
+          </div>
+        </div>
+      </section>
+    </ScrollReveal>
+  {/if}
+
+  <ScrollReveal delay={60}>
+    <section class="section-gap">
+      <div class="section-rule mb-6">
+        <h2 class="section-heading mb-0">
+          <a href="/about/" class="hover:text-accent dark:hover:text-accent-light transition-colors duration-200">interests</a>
+        </h2>
+        <div class="section-rule-line"></div>
+      </div>
+
+      <div class="space-y-2 text-ink-700 dark:text-cream-300">
+        <p>
+          {@html parseLinks(homepageData.researchInterests.intro)}
+        </p>
+
+        <div>
+          <div>
+            <button
+              type="button"
+              class="research-toggle"
+              data-track="interests_detail_toggle"
+              aria-expanded={researchExpanded}
+              aria-controls="research-interest-list"
+              on:click={toggleResearchDetails}
+            >
+              <Mark kind="caret" />
+              <span>{researchExpanded ? "want a summary?" : "want more detail?"}</span>
+            </button>
+            <!-- Every row's buttons toggle all rows at once. This hint says so
+                 to screen readers without replacing each button's visible text. -->
+            <span id="research-interest-hint" class="sr-only">
+              {researchExpanded
+                ? "Shows concise summaries for all research interests."
+                : "Shows full research questions for all research interests."}
+            </span>
+          </div>
+
+          <!-- Roughening filter for the interest markers, gentler than the
+               banner's so 12px numerals stay legible inside the loop. -->
+          <svg width="0" height="0" style="position:absolute" aria-hidden="true">
+            <filter id="interest-loop-rough" x="-50%" y="-70%" width="200%" height="240%">
+              <feTurbulence type="fractalNoise" baseFrequency="0.045" numOctaves="3" seed="4" />
+              <feDisplacementMap in="SourceGraphic" scale="2.6" />
+            </filter>
+          </svg>
+          <ol id="research-interest-list">
+            {#each interestRows as item, i}
+              <!-- svelte-ignore a11y_click_events_have_key_events a11y_no_noninteractive_element_interactions -->
+              <li
+                class="research-interest-row py-3"
+                class:research-interest-row-expanded={researchExpanded}
+                style="--interest-delay: {i * 40}ms"
+                on:pointerdown={handleInterestRowPress}
+                on:click={handleInterestRowClick}
+              >
+                <div class="min-w-0">
+                  <p class="interest-title-line font-ui font-normal text-ink-900 dark:text-cream-100">
+                    <span class="interest-mark select-none" aria-hidden="true">
+                      <svg class="interest-loop" viewBox="0 0 44 28">
+                        <path
+                          class="interest-loop-ghost"
+                          d={interestLoops[i % interestLoops.length]}
+                        />
+                        <path
+                          class="interest-loop-fill"
+                          d={interestLoops[i % interestLoops.length]}
+                        />
+                        <path
+                          class="interest-loop-stroke"
+                          d={interestLoops[i % interestLoops.length]}
+                        />
+                      </svg>
+                      <span class="interest-mark-num">{String(i + 1).padStart(2, "0")}</span>
+                    </span>
+                    <button
+                      type="button"
+                      class="research-interest-title"
+                      aria-expanded={researchExpanded}
+                      aria-controls="research-interest-list"
+                      aria-describedby="research-interest-hint"
+                      on:click={toggleResearchDetails}
+                    >
+                      {item.title}
+                    </button>
+                    {#if item.quadrant.length}
+                      <!-- Shown only with the full questions, like the citations. -->
+                      <span
+                        class="interest-quadrant"
+                        class:interest-grid-shown={researchExpanded}
+                        aria-hidden={!researchExpanded}
+                      >
+                        <span class="interest-quadrant-inner">
+                          <QuadrantGlyph cells={item.quadrant} />
+                          {#if item.quadrantLabel}
+                            <span>{item.quadrantLabel}</span>
+                          {/if}
+                        </span>
+                      </span>
+                    {/if}
+                  </p>
+
+                  <div
+                    class="interest-summary-shell"
+                    aria-hidden={researchExpanded}
+                  >
+                    <div class="interest-copy-inner">
+                      <!-- Plain text, not a button: browsers won't start a
+                           selection inside a button. The row's click handler
+                           still toggles on a click here. -->
+                      <p class="mt-0.5 text-sm leading-snug text-ink-500 dark:text-cream-400">
+                        {item.summary}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div
+                    class="interest-question-shell"
+                    aria-hidden={!researchExpanded}
+                    inert={!researchExpanded}
+                  >
+                    <div class="interest-copy-inner">
+                      <p class="mt-0.5 text-sm leading-relaxed text-ink-600 dark:text-cream-300">
+                        {@html parseInterestText(item.question)}
+                      </p>
+                      {#if item.citations.length > 0}
+                        <div class="mt-1.5 flex flex-wrap gap-1.5 font-ui text-xs leading-none text-ink-400 dark:text-cream-500">
+                          <span class="text-ink-300 dark:text-cream-500">↳</span>
+                          {#each item.citations as citation, ci}
+                            {#if citation.url}
+                              <a
+                                href={citation.url}
+                                class="transition-colors duration-150 hover:text-accent dark:hover:text-accent-light"
+                              >[{citation.label}]</a>
+                            {:else}
+                              <span class="relative inline-flex">
+                                <button
+                                  type="button"
+                                  on:click={() => showCook(`${i}-${ci}`)}
+                                  class="cursor-pointer font-[inherit] text-[length:inherit] leading-none transition-colors duration-150 hover:text-accent dark:hover:text-accent-light"
+                                >[{citation.label}]</button>
+                                {#if cookKey === `${i}-${ci}`}
+                                  <span class="copied-tooltip">
+                                    <span class="copied-triangle"></span>
+                                    let me cook :)
+                                  </span>
+                                {/if}
+                              </span>
+                            {/if}
+                          {/each}
+                        </div>
+                      {/if}
+                      {#if i === interestRows.length - 1}
+                        <p class="mt-2 font-ui text-xs leading-tight text-ink-400 dark:text-cream-500">
+                          [IP] = in progress
+                        </p>
+                      {/if}
+                    </div>
+                  </div>
+                </div>
+              </li>
+            {/each}
+          </ol>
+        </div>
+      </div>
+    </section>
+  </ScrollReveal>
+
+  <ScrollReveal delay={60}>
+    <section class="section-gap">
+      <div class="section-rule mb-6">
+        <h2 class="section-heading mb-0">
+          <a href="/research/" class="hover:text-accent dark:hover:text-accent-light transition-colors duration-200">selected works</a>
+        </h2>
+        <div class="section-rule-line"></div>
+      </div>
+
+      <div class="space-y-1 stagger-children">
+        {#each featuredPapers as paper (paper.id)}
+          <ResearchCard {paper} variant="preview" />
+        {/each}
+      </div>
+    </section>
+  </ScrollReveal>
+
+</div>
+
+<style>
+  .research-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: var(--space-1-5);
+    border-radius: var(--radius-control);
+    color: theme("colors.ink.500");
+    font-family: var(--font-ui);
+    font-size: 0.75rem;
+    font-weight: 400;
+    letter-spacing: 0.01em;
+    line-height: 1;
+    cursor: pointer;
+    transition: color var(--motion-base) var(--ease-standard);
+  }
+  .research-toggle:hover {
+    color: theme("colors.accent.dark");
+  }
+  :global(.dark) .research-toggle {
+    color: theme("colors.cream.400");
+  }
+  :global(.dark) .research-toggle:hover {
+    color: theme("colors.accent.light");
+  }
+  .research-interest-title {
+    border-radius: var(--radius-control);
+    color: inherit;
+    font: inherit;
+    font-family: var(--font-prose);
+    cursor: pointer;
+    transition: color var(--motion-base) var(--ease-standard);
+  }
+  /* Interest markers: a drawn pen loop with the accent slab misregistered
+     behind it, the same two-colour riso idea as the banner. Colors are
+     hard-coded for the same reason the banner's are: this is the documented
+     riso treatment, not ordinary UI. */
+  /* The marker leads the title at every width. Its left edge sits on the
+     reading edge, so the summary below it stays aligned with the intro
+     paragraph rather than being indented into a gutter. */
+  .interest-title-line {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
+  }
+  .interest-mark {
+    position: relative;
+    flex: none;
+    width: 44px;
+    height: 28px;
+    font-family: var(--font-ui);
+    font-size: 0.75rem;
+    line-height: 1;
+  }
+  .interest-loop {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    overflow: visible;
+    /* One filter for all three layers so the fills and the outline wobble
+       together, exactly as the banner's slab and sheet do. */
+    filter: url(#interest-loop-rough);
+  }
+  .interest-loop-ghost {
+    fill: #e85d4c;
+    transform: translate(2.5px, 2.5px);
+  }
+  .interest-loop-fill {
+    fill: #fbf2e8;
+  }
+  .interest-loop-stroke {
+    fill: none;
+    stroke: #1a1a1a;
+    stroke-width: 1.6;
+    stroke-linecap: round;
+  }
+  .interest-mark-num {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #1a1a1a;
+  }
+  :global(.dark) .interest-loop-ghost {
+    fill: #f07563;
+  }
+  :global(.dark) .interest-loop-fill {
+    fill: #2a2422;
+  }
+  :global(.dark) .interest-loop-stroke {
+    stroke: #fdf8f3;
+  }
+  :global(.dark) .interest-mark-num {
+    color: #fdf8f3;
+  }
+
+  /* The 2×2 glyph beside each title. It stays collapsed to zero width until
+     the full questions are shown, then eases open the same way the question
+     shells do. */
+  .interest-quadrant {
+    display: inline-grid;
+    grid-template-columns: 0fr;
+    opacity: 0;
+    transition:
+      grid-template-columns var(--motion-reveal) var(--ease-emphasized),
+      opacity var(--motion-base) var(--ease-standard),
+      margin-left var(--motion-reveal) var(--ease-emphasized);
+  }
+  .interest-quadrant-inner {
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+  }
+  .interest-grid-shown {
+    grid-template-columns: 1fr;
+    opacity: 1;
+  }
+  .interest-quadrant {
+    font-family: var(--font-ui);
+    font-size: 0.72rem;
+    font-weight: 400;
+    color: theme("colors.ink.400");
+    transition-delay: var(--interest-delay, 0ms);
+    /* Cancels the title line's gap while collapsed, so no sliver of space
+       trails the title. */
+    margin-left: -0.55rem;
+  }
+  .interest-quadrant.interest-grid-shown {
+    margin-left: 0;
+  }
+  .interest-quadrant-inner {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  :global(.dark) .interest-quadrant {
+    color: theme("colors.cream.500");
+  }
+
+  .research-interest-row {
+    cursor: pointer;
+  }
+  .research-interest-row:hover .research-interest-title {
+    color: theme("colors.accent.dark");
+  }
+  :global(.dark) .research-interest-row:hover .research-interest-title {
+    color: theme("colors.accent.light");
+  }
+
+  .interest-summary-shell,
+  .interest-question-shell,
+  .banner-projects-shell {
+    display: grid;
+    transition:
+      grid-template-rows var(--motion-reveal) var(--ease-emphasized),
+      opacity var(--motion-base) var(--ease-standard),
+      transform var(--motion-reveal) var(--ease-emphasized);
+  }
+  .interest-summary-shell,
+  .interest-question-shell {
+    transition-delay: var(--interest-delay, 0ms);
+  }
+  .interest-summary-shell {
+    grid-template-rows: 1fr;
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .interest-question-shell {
+    grid-template-rows: 0fr;
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  .interest-copy-inner,
+  .banner-projects-inner {
+    min-height: 0;
+    overflow: hidden;
+  }
+  .research-interest-row-expanded .interest-summary-shell {
+    grid-template-rows: 0fr;
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+  .research-interest-row-expanded .interest-question-shell {
+    grid-template-rows: 1fr;
+    opacity: 1;
+    transform: translateY(0);
+  }
+  /*
+   * The inner wrapper must clip while its row is collapsing, but an expanded
+   * question needs to let citation popovers escape its bounds. Without this,
+   * the first two rows hide "let me cook :)" below the question; the final row
+   * only appears to work because its extra legend gives the popover room.
+   */
+  .research-interest-row-expanded .interest-question-shell .interest-copy-inner {
+    overflow: visible;
+  }
+
+  /*
+   * Mobile Safari can resolve an animated 1fr track before wrapped copy has
+   * reached its final height, leaving the overflow-hidden inner clipped.
+   * Let the active panel use normal document flow on small screens instead.
+   */
+  @media (max-width: 767px) {
+    .interest-summary-shell,
+    .interest-question-shell,
+    .research-interest-row-expanded .interest-summary-shell,
+    .research-interest-row-expanded .interest-question-shell {
+      grid-template-rows: none;
+      transform: none;
+      transition: none;
+    }
+    .interest-summary-shell {
+      display: block;
+      opacity: 1;
+    }
+    .interest-question-shell {
+      display: none;
+    }
+    .research-interest-row-expanded .interest-summary-shell {
+      display: none;
+    }
+    .research-interest-row-expanded .interest-question-shell {
+      display: block;
+      opacity: 1;
+    }
+    .interest-copy-inner {
+      overflow: visible;
+    }
+  }
+
+  .copied-tooltip {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    top: calc(100% + 3px);
+    z-index: var(--layer-tooltip);
+    font-family: var(--font-ui);
+    font-size: 0.75rem;
+    white-space: nowrap;
+    pointer-events: none;
+    background: #E85D4C;
+    color: #fdf8f3;
+    padding: var(--space-1) var(--space-3);
+    border-radius: var(--radius-inline);
+    animation: tooltip-pop var(--motion-base) var(--ease-emphasized) forwards;
+  }
+
+  .copied-triangle {
+    position: absolute;
+    top: -3px;
+    left: 50%;
+    width: 8px;
+    height: 8px;
+    background: #E85D4C;
+    border-radius: 2px;
+    transform: translateX(-50%) rotate(45deg);
+  }
+
+  /* When the copy fails, the tooltip carries the address itself: information
+     someone has to read and select, so it takes the primary-button pairing
+     (ink on cream, inverted in dark) rather than small cream text on accent,
+     and accepts the pointer. */
+  .copied-tooltip.is-address {
+    background: theme("colors.ink.900");
+    color: theme("colors.cream.100");
+    pointer-events: auto;
+    user-select: all;
+  }
+  .copied-tooltip.is-address .copied-triangle {
+    background: theme("colors.ink.900");
+  }
+  :global(.dark) .copied-tooltip.is-address,
+  :global(.dark) .copied-tooltip.is-address .copied-triangle {
+    background: theme("colors.cream.100");
+    color: theme("colors.ink.900");
+  }
+
+  /* Riso + sketchy combo: a wobbly accent slab sits offset behind a wobbly
+     bordered cream card. Both wobbles share the same SVG turbulence filter,
+     so the misregister has a hand-printed feel. */
+  .banner-riso-sketch-wrap {
+    transition: transform var(--motion-slow) var(--ease-emphasized);
+  }
+  .banner-riso-sketch-wrap:hover {
+    transform: translate(-2px, -2px);
+  }
+
+  /* Back accent slab: offset down/right, distorted edges */
+  .banner-riso-back {
+    position: absolute;
+    top: 6px;
+    left: 6px;
+    right: -6px;
+    bottom: -6px;
+    background: #E85D4C;
+    border-radius: 22px 6px 14px 8px;
+    filter: url(#banner-rough-strong);
+    pointer-events: none;
+    z-index: 0;
+    transition:
+      top var(--motion-slow) var(--ease-emphasized),
+      left var(--motion-slow) var(--ease-emphasized),
+      right var(--motion-slow) var(--ease-emphasized),
+      bottom var(--motion-slow) var(--ease-emphasized);
+  }
+  .banner-riso-sketch-wrap:hover .banner-riso-back {
+    top: 8px;
+    left: 8px;
+    right: -8px;
+    bottom: -8px;
+  }
+  :global(.dark) .banner-riso-back {
+    background: #F07563;
+  }
+
+  /* Front sheet: cream paper drawn on ::before with the SAME rough filter
+     as the back slab, so both fills wobble together (no straight edge where
+     cream meets accent). The sketchy outline lives on ::after. */
+  .banner-riso-front {
+    background: transparent;
+    z-index: 1;
+    isolation: isolate;
+  }
+  .banner-riso-front::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: #FBF2E8;
+    border-radius: 14px 20px 14px 18px;
+    filter: url(#banner-rough-strong);
+    pointer-events: none;
+    z-index: 0;
+  }
+  .banner-riso-front::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border: 2.25px solid #1A1A1A;
+    border-radius: 14px 20px 14px 18px;
+    filter: url(#banner-rough-strong);
+    pointer-events: none;
+    z-index: 2;
+  }
+  :global(.dark) .banner-riso-front::before {
+    background: #2a2422;
+  }
+  :global(.dark) .banner-riso-front::after {
+    border-color: #fdf8f3;
+  }
+
+  /* Hover underline belongs to the label only: never the caret. */
+  .banner-toggle:hover {
+    text-decoration: none;
+  }
+  .banner-toggle:hover .banner-toggle-label {
+    text-decoration: underline;
+    text-decoration-color: currentColor;
+    text-underline-offset: 3px;
+  }
+
+  /* The drawn caret (a global .mark) sits a thin space after the label. */
+  .banner-toggle :global(.mark-caret) {
+    margin-left: 0.3em;
+  }
+
+  .banner-projects-shell {
+    grid-template-rows: 0fr;
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  .banner-projects-shell-open {
+    grid-template-rows: 1fr;
+    opacity: 1;
+    transform: translateY(0);
+  }
+  .banner-project-item {
+    opacity: 0;
+    transform: translateY(8px);
+    transition:
+      opacity var(--motion-base) var(--ease-standard),
+      transform var(--motion-reveal) var(--ease-emphasized);
+  }
+  .banner-projects-shell-open .banner-project-item {
+    opacity: 1;
+    transform: translateY(0);
+    transition-delay: var(--project-delay, 0ms);
+  }
+
+  /* Darker selection inside the banner so it stands out from the blush bg.
+     Use :global so selection applies to all descendants: including @html-rendered
+     <strong>/<a> which don't carry Svelte's scoping hash. */
+  :global(.banner-box *::selection),
+  :global(.banner-box::selection) {
+    background: #E8B8A8;
+    color: #1A1A1A;
+  }
+  :global(.dark .banner-box *::selection),
+  :global(.dark .banner-box::selection) {
+    background: #C94B3D;
+    color: #fdf8f3;
+  }
+
+  @keyframes tooltip-pop {
+    from {
+      opacity: 0;
+      transform: translateX(-50%) translateY(-8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+  }
+</style>
